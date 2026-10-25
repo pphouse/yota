@@ -78,7 +78,7 @@ src/
     api/events               計測イベント
   components/                ChatScreen, AgeGate, SceneCard, StoryMessage, Featured, PlotList, Avatar
   lib/
-    characters.ts            公式キャラ・プロット（全員18歳以上の架空の人物）
+    characters.ts            公式キャラ・プロット22本（全員18歳以上の架空の人物）
     prompt.ts                システムプロンプト（視点、3往復で山場、安全の指示）
     chat.ts                  1往復の処理（判定→生成→流しながら判定→保存）
     safety.ts                入力・出力の安全判定
@@ -104,5 +104,4 @@ src/
 
 - アカウント登録（今は端末ごとの匿名セッション）
 - 判定モデルによる二次判定（`safety.ts` の `JudgeHook` に差し込む口だけある）
-- 公式キャラ20本（今は12本）
 - 有料化、ユーザーによるキャラ作成、漫画化

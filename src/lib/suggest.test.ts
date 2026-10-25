@@ -44,6 +44,7 @@ describe("buildSuggestPrompt / buildSuggestRequest", () => {
     expect(self).toContain("【視点：当事者】");
     expect(self).toContain("*アスタリスク*");
     expect(watch).toContain("【視点：見守り】");
+    expect(watch).toContain("台詞は書きません");
     expect(watch).toContain("読者は18歳未満です");
     expect(watch).toContain("【これまでのあらすじ】\n雨の夜の約束");
   });
