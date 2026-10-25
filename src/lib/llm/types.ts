@@ -11,7 +11,7 @@ export type GenerateRequest = {
   maxTokens?: number;
   signal?: AbortSignal;
   /** 用途。実プロバイダは無視し、ダミー応答の出し分けにだけ使う。 */
-  purpose?: "chat" | "summary";
+  purpose?: "chat" | "summary" | "suggest";
 };
 
 export interface LLMProvider {

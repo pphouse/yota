@@ -4,7 +4,7 @@ import { logEvent } from "@/lib/store";
 
 // 画面側から送ってよい計測イベントだけを受け付ける
 const Body = z.object({
-  type: z.enum(["card_open", "card_share", "card_download", "viewpoint_select", "landing_view"]),
+  type: z.enum(["card_open", "card_share", "card_download", "viewpoint_select", "landing_view", "suggestion_select"]),
   props: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 });
 

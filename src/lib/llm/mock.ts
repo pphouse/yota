@@ -10,7 +10,7 @@ export class MockProvider implements LLMProvider {
   constructor(private readonly delayMs = 12) {}
 
   async *stream(req: GenerateRequest): AsyncIterable<string> {
-    const text = req.purpose === "summary" ? summarize(req) : reply(req);
+    const text = req.purpose === "summary" ? summarize(req) : req.purpose === "suggest" ? suggest(req) : reply(req);
     for (let i = 0; i < text.length; i += 3) {
       if (req.signal?.aborted) return;
       if (i > 0 && this.delayMs > 0) await sleep(this.delayMs);
@@ -71,6 +71,21 @@ function reply(req: GenerateRequest): string {
     say(pick(["……もう少し、ここにいろ", "次は、もう少しちゃんと話を聞かせて", "無理して笑わなくていい。俺の前では"])),
     "",
     "（ダミー応答です。APIキーを設定すると本物のAIが返答します）",
+  ].join("\n");
+}
+
+/** 返事の候補（1行に1つ） */
+function suggest(req: GenerateRequest): string {
+  const cast = names(req.system).map(shortName);
+  if (req.system.includes("【視点：見守り】") && cast.length >= 2) {
+    const [a, b] = cast;
+    return [`${b}が${a}に本音をこぼす`, pick([`${a}が昔の約束を思い出す`, `${a}が${b}の手を取る`]), "*そっと見守る*"].join("\n");
+  }
+  const who = cast[0] ?? "あなた";
+  return [
+    pick(["……ありがとう", "うん、少しだけ"]),
+    `${who}さんは、どうしてそこまでしてくれるの？`,
+    pick(["*そっと目を合わせる*", "*黙ってうなずく*"]),
   ].join("\n");
 }
 

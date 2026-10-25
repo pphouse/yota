@@ -10,7 +10,8 @@ import { AvatarStack } from "@/components/Avatar";
 import { BackIcon, CardIcon, PenIcon, RestartIcon, RetryIcon, SendIcon } from "@/components/icons";
 import { AssistantMessage, UserMessage } from "@/components/StoryMessage";
 import { getPlot, VIEWPOINT_LABEL, type Viewpoint } from "@/lib/characters";
-import { api, readEvents } from "@/lib/client";
+import { api, readEvents, track } from "@/lib/client";
+import { Typewriter } from "@/lib/typewriter";
 
 type UIMessage = {
   key: string;
@@ -55,13 +56,22 @@ export function ChatScreen() {
   const [phase, setPhase] = useState<"loading" | "gate" | "ready">("loading");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<UIMessage[]>([]);
-  const [busy, setBusy] = useState(false);
+  // receiving = 返答を受け取っている途中、revealing = 受け取り終えて、残りを画面に見せている途中
+  const [turn, setTurn] = useState<"idle" | "receiving" | "revealing">("idle");
+  const busy = turn !== "idle";
   const [notice, setNotice] = useState<Notice | null>(null);
   const [input, setInput] = useState("");
   const [editing, setEditing] = useState<{ key: string; text: string } | null>(null);
   const [card, setCard] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<{ forId: string; items: string[] } | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const typerRef = useRef<Typewriter | null>(null);
+  const turnRef = useRef<Promise<void>>(Promise.resolve());
+  const suggestRequested = useRef<string | null>(null);
+  const composingRef = useRef(false);
+  const compositionEndRef = useRef(0);
+  const stickRef = useRef(true);
 
   const applyLoaded = useCallback((r: Loaded) => {
     if (r.kind === "gate") return setPhase("gate");
@@ -88,23 +98,55 @@ export function ChatScreen() {
     return () => {
       alive = false;
       abortRef.current?.abort();
+      typerRef.current?.cancel();
     };
   }, [plot, viewpoint, applyLoaded]);
 
+  // 読み返すために上へ戻っているときは、自動で下へ送らない
+  useEffect(() => {
+    const onScroll = () => {
+      stickRef.current = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 160;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   // 下に固定した入力欄に隠れないよう、ページの一番下まで送る
   useEffect(() => {
-    window.scrollTo({ top: document.documentElement.scrollHeight });
+    if (stickRef.current) window.scrollTo({ top: document.documentElement.scrollHeight });
   }, [messages]);
+
+  // キャラが返すたびに、次の返事の候補を作ってもらう（最初の一言には作品ごとの候補を使う）。
+  // 受け取りが終わった時点で頼むので、文章を見せ終える頃には届いている
+  useEffect(() => {
+    if (phase !== "ready" || turn === "receiving" || !conversationId || messages.length < 2) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role !== "assistant" || !lastMsg.id || lastMsg.flagged) return;
+    if (suggestRequested.current === lastMsg.id) return;
+    const forId = lastMsg.id;
+    suggestRequested.current = forId;
+    void api<{ suggestions?: string[] }>("/api/suggest", {
+      method: "POST",
+      body: JSON.stringify({ conversationId, messageId: forId }),
+    }).then((r) => {
+      if (r.ok && r.data.suggestions?.length) setSuggestions({ forId, items: r.data.suggestions });
+    });
+  }, [phase, turn, conversationId, messages]);
 
   async function stream(body: { message?: string; regenerate?: boolean }, optimisticUser?: UIMessage) {
     if (!conversationId) return;
-    setBusy(true);
+    setTurn("receiving");
     setNotice(null);
+    stickRef.current = true;
     const placeholder: UIMessage = { key: nextKey(), role: "assistant", content: "", streaming: true };
     setMessages((prev) => [...prev, ...(optimisticUser ? [optimisticUser] : []), placeholder]);
     const update = (fn: (m: UIMessage) => UIMessage) =>
       setMessages((prev) => prev.map((m) => (m.key === placeholder.key ? fn(m) : m)));
     const drop = (keys: string[]) => setMessages((prev) => prev.filter((m) => !keys.includes(m.key)));
+    // 文章AIは長文でも一瞬で返してくるので、届いた分を貯めて、人が書くくらいの速さで見せる
+    const typer = new Typewriter((text) => update((m) => ({ ...m, content: text })));
+    typerRef.current = typer;
+    let saved = false;
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -117,6 +159,7 @@ export function ChatScreen() {
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+        typer.cancel();
         drop([placeholder.key, ...(optimisticUser ? [optimisticUser.key] : [])]);
         if (res.status === 401) return setPhase("gate");
         setNotice({ kind: data.code === "daily_limit" ? "limit" : "error", message: data.error ?? "送信できませんでした" });
@@ -132,44 +175,64 @@ export function ChatScreen() {
             }
             break;
           case "d":
-            update((m) => ({ ...m, content: m.content + e.v }));
+            typer.push(e.v);
             break;
           case "replace":
-            update((m) => ({ ...m, content: e.v, flagged: true }));
+            typer.replace(e.v);
+            update((m) => ({ ...m, flagged: true }));
             break;
           case "done":
-            update((m) => ({ ...m, id: e.messageId, streaming: false }));
+            saved = true;
+            update((m) => ({ ...m, id: e.messageId }));
             break;
           case "notice":
             setNotice({ kind: e.kind, message: e.message, link: e.link });
             break;
           case "blocked":
+            typer.cancel();
             drop([placeholder.key, ...(optimisticUser ? [optimisticUser.key] : [])]);
             setNotice({ kind: "blocked", message: e.message });
             if (body.message) setInput(body.message);
             break;
           case "error":
+            typer.cancel();
             drop([placeholder.key]);
             setNotice({ kind: "error", message: e.message });
             break;
         }
       }
+      // 受け取りは終わった。残りを見せ終えるまで待つ（返答をタップすると一気に出せる）
+      typer.end();
+      setTurn("revealing");
+      await typer.done;
+      if (saved) update((m) => ({ ...m, streaming: false }));
     } catch (err) {
+      typer.cancel();
       if ((err as Error).name !== "AbortError") {
         drop([placeholder.key]);
         setNotice({ kind: "error", message: "通信が途切れました。もう一度試してください。" });
       }
     } finally {
-      setBusy(false);
+      if (typerRef.current === typer) typerRef.current = null;
+      setTurn("idle");
       abortRef.current = null;
     }
   }
 
   function send(text: string) {
     const t = text.trim();
-    if (!t || busy) return;
+    if (!t || turn === "receiving") return;
+    // 返答を見せている途中なら、残りを一気に出してから送る
+    if (turn === "revealing") typerRef.current?.flush();
     setInput("");
-    void stream({ message: t }, { key: nextKey(), role: "user", content: t });
+    const user: UIMessage = { key: nextKey(), role: "user", content: t };
+    turnRef.current = turnRef.current.then(() => stream({ message: t }, user));
+  }
+
+  function pick(text: string, index: number, opening: boolean) {
+    if (!plot) return;
+    track("suggestion_select", { plotId: plot.id, index, opening });
+    send(text);
   }
 
   function regenerate() {
@@ -178,7 +241,7 @@ export function ChatScreen() {
       const last = prev[prev.length - 1];
       return last?.role === "assistant" && prev.length > 1 ? prev.slice(0, -1) : prev;
     });
-    void stream({ regenerate: true });
+    turnRef.current = turnRef.current.then(() => stream({ regenerate: true }));
   }
 
   async function saveEdit() {
@@ -192,6 +255,9 @@ export function ChatScreen() {
     if (!res.ok) return setNotice({ kind: "error", message: res.data.error ?? "保存できませんでした" });
     setMessages((prev) => prev.map((m) => (m.key === editing.key ? { ...m, content: editing.text, flagged: false } : m)));
     setEditing(null);
+    // 返答が変わったので、候補も作り直す
+    suggestRequested.current = null;
+    setSuggestions(null);
   }
 
   async function restart() {
@@ -220,11 +286,16 @@ export function ChatScreen() {
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    const finePointer = window.matchMedia("(pointer: fine)").matches;
-    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing && finePointer) {
-      e.preventDefault();
-      send(input);
-    }
+    if (e.key !== "Enter" || e.shiftKey) return;
+    // 日本語の変換を確定する Enter では送らない。Safari は確定の Enter を compositionend の「あと」に
+    // isComposing=false で送ってくるので、keyCode 229 と、確定した直後かどうかでも見分ける
+    const native = e.nativeEvent;
+    if (native.isComposing || native.keyCode === 229 || composingRef.current) return;
+    if (e.timeStamp - compositionEndRef.current < 100) return;
+    // スマホでは Enter は改行。送るのはボタンで
+    if (!window.matchMedia("(pointer: fine)").matches) return;
+    e.preventDefault();
+    send(input);
   }
 
   if (!plot || !viewpoint) {
@@ -240,7 +311,16 @@ export function ChatScreen() {
 
   const last = messages[messages.length - 1];
   const watch = viewpoint === "watch";
-  const starters = messages.length === 1 && !busy ? plot.starterReplies[viewpoint] ?? [] : [];
+  const opening = messages.length === 1;
+  // 返事の候補：最初の一言には作品ごとの候補、そのあとはキャラが返すたびに作った候補
+  const chips =
+    turn === "idle" && last?.role === "assistant" && !last.streaming
+      ? opening
+        ? plot.starterReplies[viewpoint] ?? []
+        : suggestions && suggestions.forId === last.id
+          ? suggestions.items
+          : []
+      : [];
   const pill = "press inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-[0.8rem]";
   const subPill = `${pill} bg-night-3 font-bold text-paper disabled:opacity-40`;
 
@@ -305,7 +385,14 @@ export function ChatScreen() {
           {phase === "loading" && <p className="py-10 text-center text-sm text-mist">物語を開いています</p>}
           <ol className="space-y-6">
             {messages.map((m) => (
-              <li key={m.key} data-beat className={m === last ? "arrive" : undefined} {...(m.streaming ? { "data-streaming": "" } : {})}>
+              <li
+                key={m.key}
+                data-beat
+                className={m === last ? "arrive" : undefined}
+                // 表示している途中の返答をタップすると、残りを一気に出す
+                onClick={m.streaming ? () => typerRef.current?.flush() : undefined}
+                {...(m.streaming ? { "data-streaming": "" } : {})}
+              >
                 {m.role === "user" ? (
                   <UserMessage text={m.content} watch={watch} />
                 ) : editing?.key === m.key ? (
@@ -379,13 +466,13 @@ export function ChatScreen() {
                 )}
               </div>
             )}
-            {starters.length > 0 && (
-              <div className="rail mb-2.5 flex gap-2 overflow-x-auto px-4">
-                {starters.map((s) => (
+            {chips.length > 0 && (
+              <div className="rail arrive mb-2.5 flex gap-2 overflow-x-auto px-4">
+                {chips.map((s, i) => (
                   <button
-                    key={s}
+                    key={`${i}-${s}`}
                     data-starter
-                    onClick={() => send(s)}
+                    onClick={() => pick(s, i, opening)}
                     className="press shrink-0 rounded-full bg-night-3 px-4 py-2 text-[0.85rem] font-bold text-paper ring-1 ring-brand/35"
                   >
                     {s.replace(/\*/g, "")}
@@ -414,6 +501,11 @@ export function ChatScreen() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={onKeyDown}
+                  onCompositionStart={() => (composingRef.current = true)}
+                  onCompositionEnd={(e) => {
+                    composingRef.current = false;
+                    compositionEndRef.current = e.timeStamp;
+                  }}
                   rows={1}
                   maxLength={2000}
                   placeholder={watch ? "見たい展開を書く" : `${plot.personas.length === 1 ? "話しかける" : "ふたりに話しかける"}`}
@@ -423,7 +515,7 @@ export function ChatScreen() {
                 <button
                   type="submit"
                   aria-label="送る"
-                  disabled={busy || !input.trim()}
+                  disabled={turn === "receiving" || !input.trim()}
                   className="press btn-brand grid size-11 shrink-0 place-items-center rounded-full"
                 >
                   <SendIcon size={20} />

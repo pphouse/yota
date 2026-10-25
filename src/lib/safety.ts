@@ -34,6 +34,11 @@ export function needsCare(text: string): boolean {
   return includesAny(text, CARE_WORDS);
 }
 
+/** 性的な行為を示す語を含むか。返事の候補のように、アプリから差し出す文言では成人同士でも出さない */
+export function mentionsSexual(text: string): boolean {
+  return includesAny(text, SEXUAL_WORDS);
+}
+
 export function checkText(text: string): SafetyVerdict {
   const care = needsCare(text);
   const minor = includesAny(text, MINOR_WORDS) || MINOR_AGE.test(text);
