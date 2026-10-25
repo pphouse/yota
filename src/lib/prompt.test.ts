@@ -17,7 +17,7 @@ describe("buildSystemPrompt", () => {
     const p = buildSystemPrompt({ plot: duo, viewpoint: "watch", isMinor: false, summary: "", userTurns: 1 });
     expect(p).toContain("【視点：見守り】");
     expect(p).toContain("ユーザーに話しかけません");
-    expect(p).toContain("つぶやきやツッコミの言葉を、登場人物に言わせてはいけません");
+    expect(p).toContain("つぶやきやツッコミは登場人物に聞こえていません");
   });
 
   it("山場は1往復目には起こさず、2往復目で兆しを入れ、3往復目で必ず起こす。その後も候補を残す", () => {
@@ -34,6 +34,12 @@ describe("buildSystemPrompt", () => {
     const p = buildSystemPrompt({ plot: getPlot("mock-wedding")!, viewpoint: "watch", isMinor: false, summary: "", userTurns: 1 });
     expect(p).toContain("名前は「一条」「久住」の表記だけを使い");
     expect(buildSystemPrompt({ plot: solo, viewpoint: "self", isMinor: false, summary: "", userTurns: 1 })).toContain("台詞は「」で囲まず");
+  });
+
+  it("最後に、一人称・呼び方・敬語かタメ口かをもう一度並べる", () => {
+    const p = buildSystemPrompt({ plot: getPlot("lab-ten-years")!, viewpoint: "watch", isMinor: false, summary: "", userTurns: 1 });
+    expect(p).toContain("- 律：一人称は「僕」、相手は必ず「先輩」と呼ぶ（ほかの呼び方はしない）、です・ます で話す（崩さない）");
+    expect(p).toContain("- 早瀬：一人称は「俺」、です・ます は使わない");
   });
 
   it("未成年には恋愛表現の制限を追加する", () => {

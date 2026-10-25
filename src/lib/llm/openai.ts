@@ -3,7 +3,7 @@ import { LLMError, type GenerateRequest, type LLMProvider } from "./types";
 
 // 推論モデルは、考えた分も max_completion_tokens を使う。返答の長さとは別に、考える量に応じた余裕を足す
 // （足りないと、考えるだけで枠を使い切って本文が空になる。qwen は medium でも3000トークン以上考えることがある。上限なので、使わなければ増えない）
-const REASONING_HEADROOM: Record<string, number> = { none: 0, low: 1000, medium: 6000, high: 10000 };
+const REASONING_HEADROOM: Record<string, number> = { none: 0, low: 3000, medium: 6000, high: 10000 };
 
 // OpenAI互換の Chat Completions（ストリーミング）。OPENAI_BASE_URL で互換API（Cerebras など）にも向けられる。
 export class OpenAIProvider implements LLMProvider {
@@ -19,7 +19,7 @@ export class OpenAIProvider implements LLMProvider {
   ) {
     this.baseUrl = opts.baseUrl || "https://api.openai.com/v1";
     this.reasoningEffort = opts.reasoningEffort || undefined;
-    // 短い出力の考える量。qwen は low でも長く考えるので none を指定する（gpt-oss は none を受け付けないので low）
+    // 短い出力の考える量（既定は low）。none にすると速いが、候補の日本語や口調が崩れやすい
     this.briefReasoningEffort = opts.briefReasoningEffort || (this.reasoningEffort === "none" ? "none" : "low");
   }
 

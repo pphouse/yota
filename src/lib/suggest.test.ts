@@ -42,6 +42,11 @@ describe("parseSuggestions", () => {
     expect(parseSuggestions("透が俺の席に座る", "watch")).toEqual(["透が俺の席に座る"]);
   });
 
+  it("前回とまったく同じ候補と、* が閉じていない候補、登場人物の口ぶりの候補を除く", () => {
+    const text = ["次は向こうの番です", "*窓の外に目を向ける", "落ち着けって", "湯切り、きれいだよな", "*そっと目を合わせる*"].join("\n");
+    expect(parseSuggestions(text, "self", ["次は向こうの番です"])).toEqual(["*そっと目を合わせる*"]);
+  });
+
   it("途中で切れた候補と、読点で言葉をぶつ切りにした候補を除く", () => {
     const text = ["久住が、前髪を直した指を", "久住が、廊下の音に、肩を、上げる", "久住が前髪をつまむ"].join("\n");
     expect(parseSuggestions(text, "watch")).toEqual(["久住が前髪をつまむ"]);
@@ -111,6 +116,20 @@ describe("suggestReplies", () => {
     const empty: LLMProvider = { name: "empty", async *stream() { yield ""; } };
     const out = await suggestReplies({ plot: manzai, viewpoint: "watch", isMinor: false, summary: "", messages, provider: empty });
     expect(out).toEqual([WATCH_FALLBACK]);
+  });
+
+  it("3つそろわなかったときは1回だけ作り直し、足りない分を補う", async () => {
+    let calls = 0;
+    const partial: LLMProvider = {
+      name: "partial",
+      async *stream() {
+        calls++;
+        yield calls === 1 ? "ありがとう\n落ち着けって" : "ありがとう\nまた来るね\n*うなずく*";
+      },
+    };
+    const out = await suggestReplies({ plot: barista, viewpoint: "self", isMinor: false, summary: "", messages, provider: partial });
+    expect(out).toEqual(["ありがとう", "また来るね", "*うなずく*"]);
+    expect(calls).toBe(2);
   });
 
   it("1つも取り出せなかったときは、1回だけ作り直す", async () => {
