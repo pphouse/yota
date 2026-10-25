@@ -69,7 +69,7 @@ export function ChatScreen() {
   const typerRef = useRef<Typewriter | null>(null);
   const turnRef = useRef<Promise<void>>(Promise.resolve());
   const suggestRequested = useRef<string | null>(null);
-  // 前回の候補。次の候補で同じ物や動作を繰り返さないよう、サーバーに渡す
+  // 直近2回分の候補。次の候補で同じ物や動作を繰り返さないよう、サーバーに渡す
   const lastSuggestions = useRef<string[]>([]);
   const composingRef = useRef(false);
   const compositionEndRef = useRef(0);
@@ -132,7 +132,7 @@ export function ChatScreen() {
       body: JSON.stringify({ conversationId, messageId: forId, previous: lastSuggestions.current }),
     }).then((r) => {
       if (!r.ok || !r.data.suggestions?.length) return;
-      lastSuggestions.current = r.data.suggestions;
+      lastSuggestions.current = [...r.data.suggestions, ...lastSuggestions.current].slice(0, 6);
       setSuggestions({ forId, items: r.data.suggestions });
     });
   }, [phase, turn, conversationId, messages]);

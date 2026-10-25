@@ -83,7 +83,7 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<ChatEvent> {
     userTurns: Number(turns[0]?.n ?? 0),
   });
 
-  const controller = new AbortController();
+  let controller = new AbortController();
   const onAbort = () => controller.abort();
   input.signal?.addEventListener("abort", onAbort);
 
@@ -98,22 +98,28 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<ChatEvent> {
   let foreign = false;
   let first: number | null = null;
   try {
-    for await (const chunk of provider.stream({ ...request, signal: controller.signal })) {
-      if (first === null) first = now() - started;
-      text += chunk;
-      // 流しながら判定し、引っかかったらその場で差し替えて生成を止める
-      if (!checkText(text).ok) {
-        flagged = true;
-        controller.abort();
-        break;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) controller = new AbortController();
+      for await (const chunk of provider.stream({ ...request, signal: controller.signal })) {
+        if (first === null) first = now() - started;
+        text += chunk;
+        // 流しながら判定し、引っかかったらその場で差し替えて生成を止める
+        if (!checkText(text).ok) {
+          flagged = true;
+          controller.abort();
+          break;
+        }
+        // 日本語以外の文字が混ざったら、流すのをやめて下で作り直す
+        if (hasForeignText(text)) {
+          foreign = true;
+          controller.abort();
+          break;
+        }
+        yield { t: "d", v: chunk };
       }
-      // 日本語以外の文字が混ざったら、流すのをやめて下で作り直す
-      if (hasForeignText(text)) {
-        foreign = true;
-        controller.abort();
-        break;
-      }
-      yield { t: "d", v: chunk };
+      // 1文字も返ってこなかったとき（qwen は返答をまるごと推論の側に書いてしまうことがある）は、もう一度流す。
+      // 画面にはまだ何も出ていないので、そのまま続けて見せられる
+      if (text.trim() || flagged || foreign || input.signal?.aborted) break;
     }
   } catch (err) {
     if (!flagged && !foreign) {
@@ -126,8 +132,8 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<ChatEvent> {
     input.signal?.removeEventListener("abort", onAbort);
   }
 
-  if (!flagged && (foreign || !text.trim())) {
-    // 日本語以外が混ざったとき、または1文字も返ってこなかったときは、1回だけ作り直す。
+  if (!flagged && foreign) {
+    // 日本語以外が混ざったときは、1回だけ作り直して、画面の文章を違うところから打ち直す。
     // それでも混ざったら、ハングルなどの語だけ取り除いて使う
     try {
       text = await generateText(provider, { ...request, signal: input.signal });

@@ -81,8 +81,19 @@ function softenInlineQuotes(src: string, names: string[]): string {
   });
 }
 
+/** 台詞の中に入れ子になった「…」（久住「「ちゃんと言う」じゃ困る」）を『…』にする。吹き出しが割れないように */
+function nestQuotes(text: string): string {
+  let depth = 0;
+  return Array.from(text, (c) => {
+    if (c === "「") return depth++ === 0 ? c : "『";
+    if (c === "」" && depth > 0) return --depth === 0 ? c : "』";
+    return c;
+  }).join("");
+}
+
 /** 返答を、話者つきの台詞・地の文・補足に分ける。流している途中の閉じていない「も台詞として扱う。 */
 export function toBeats(text: string, names: string[]): Beat[] {
+  text = nestQuotes(text);
   const solo = names.length === 1;
   const beats: Beat[] = [];
   const loose = (raw: string) => {
@@ -121,6 +132,7 @@ export function toBeats(text: string, names: string[]): Beat[] {
       carry = null;
     }
     let last = 0;
+    let pending = "";
     for (const m of src.matchAll(QUOTE)) {
       const prefix = m[1];
       let speaker = prefix ? speakerOf(prefix, names) : undefined;
@@ -131,16 +143,17 @@ export function toBeats(text: string, names: string[]): Beat[] {
           speaker = tail.speaker;
           before += tail.rest;
         } else {
-          // 登場人物でない人（店長・元部下など）の台詞は、名前なしの吹き出しにせず、地の文として名前ごと見せる
-          loose(before);
-          beats.push({ kind: "narration", text: `${prefix}「${m[2].trim()}${m[3]}` });
+          // 登場人物でない人（店長・元部下など）の台詞や、「シエルの「…」の語尾が」のような文は、
+          // 名前なしの吹き出しにせず、続く文とつなげて地の文として見せる
+          pending += before + m[0];
           last = (m.index ?? 0) + m[0].length;
           continue;
         }
       } else if (prefix && speaker === undefined) {
         before += prefix;
       }
-      loose(before);
+      loose(pending + before);
+      pending = "";
       if (speaker === undefined && solo) speaker = 0;
       const unclosed = m[3] === "";
       const body = m[2].trim();
@@ -148,7 +161,7 @@ export function toBeats(text: string, names: string[]): Beat[] {
       if (unclosed && !isLast) carry = { speaker };
       last = (m.index ?? 0) + m[0].length;
     }
-    loose(src.slice(last));
+    loose(pending + src.slice(last));
   });
   return beats;
 }

@@ -70,6 +70,18 @@ describe("toBeats", () => {
     ]);
   });
 
+  it("台詞の中の入れ子の「」で吹き出しを割らない", () => {
+    expect(toBeats("透「「ちゃんと言う」じゃ、困るんだよ」", duo)).toEqual([
+      { kind: "line", text: "『ちゃんと言う』じゃ、困るんだよ", speaker: 1, open: false },
+    ]);
+  });
+
+  it("名前に「の」が付いた文は、途中で割らずに1つの地の文にする", () => {
+    expect(toBeats("透の「またな」の語尾が、扉の奥に消える。", duo)).toEqual([
+      { kind: "narration", text: "透の「またな」の語尾が、扉の奥に消える。" },
+    ]);
+  });
+
   it("地の文の前に名前だけが置かれても、名前だけの行は出さない", () => {
     expect(toBeats("透*皿の縁をつまむ* 陽太「なに」", duo)).toEqual([
       { kind: "narration", text: "皿の縁をつまむ" },

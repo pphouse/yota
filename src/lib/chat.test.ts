@@ -111,7 +111,7 @@ describe("runTurn", () => {
     expect(msgs.at(-1)).toMatchObject({ content: "*マスクのひもを摘む* ……ここじゃ、だめ", flagged: false });
   });
 
-  it("1文字も返ってこなかったら、1回だけ作り直す", async () => {
+  it("1文字も返ってこなかったら、もう一度流す", async () => {
     const conv = await newConv();
     let calls = 0;
     const flaky: LLMProvider = {
@@ -123,7 +123,7 @@ describe("runTurn", () => {
     };
     const events = await collect(runTurn({ session: adult, conversation: conv, plot, provider: flaky, message: "こんばんは" }));
     expect(calls).toBe(2);
-    expect(events).toContainEqual({ t: "rewrite", v: "……座って" });
+    expect(events).toContainEqual({ t: "d", v: "……座って" });
     expect((await listMessages(conv.id)).at(-1)?.content).toBe("……座って");
   });
 
