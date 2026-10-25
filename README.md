@@ -87,7 +87,7 @@ src/
     llm/                     文章AIの差し替え層（Anthropic / OpenAI / Gemini / ダミー）
 ```
 
-キャラの絵は `public/art/` にある（Higgsfieldで生成）。表紙 `<plotId>-cover.webp`（900×1342）、会話画面の背景 `<plotId>-bg.webp`（幅720）、アイコン用の顔 `face-<名前>.webp`（192×192）。パスは `characters.ts` の `cover` / `backdrop` / `face` に書く。
+キャラの絵は `public/art/` にある（Higgsfield の nano_banana_2 で生成。表紙は 2:3、背景は 9:16、どちらも 2k で作り、下のサイズに縮めて書き出す）。表紙 `<plotId>-cover.webp`（900×1342）、会話画面の背景 `<plotId>-bg.webp`（幅720）、アイコン用の顔 `face-<名前>.webp`（192×192）。パスは `characters.ts` の `cover` / `backdrop` / `face` に書く。
 
 ### 1往復の流れ
 
@@ -104,5 +104,5 @@ src/
 
 - アカウント登録（今は端末ごとの匿名セッション）
 - 判定モデルによる二次判定（`safety.ts` の `JudgeHook` に差し込む口だけある）
-- 公式キャラ20本（今は4本）
+- 公式キャラ20本（今は12本）
 - 有料化、ユーザーによるキャラ作成、漫画化

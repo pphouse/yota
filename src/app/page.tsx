@@ -15,7 +15,7 @@ export default function Home() {
         <h1 className="text-[1.6rem] font-black leading-snug">今夜は、誰の物語を読む？</h1>
         <p className="mt-1.5 text-[0.85rem] text-mist">話しかければ、すぐに続きが返ってきます。</p>
       </div>
-      <Featured plots={PLOTS} />
+      <Featured plots={PLOTS.filter((p) => p.featured)} />
       <PlotList plots={PLOTS} />
       <footer className="mt-14 px-5 text-xs leading-6 text-mist/80">
         登場人物はすべて架空の18歳以上の人物です。返答はAIが生成しています。

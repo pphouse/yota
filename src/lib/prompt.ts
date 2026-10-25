@@ -19,6 +19,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     .map((p) =>
       [
         `- 名前：${p.name}（${p.age}歳）`,
+        ...(p.call ? [`  呼び名：${p.call}（台詞の前には、この名前を付ける）`] : []),
         `  人物：${p.profile}`,
         `  性格：${p.personality}`,
         `  口調：${p.speech}（例の台詞はそのまま使わず、毎回言い回しを変える）`,
