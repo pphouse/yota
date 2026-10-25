@@ -81,6 +81,7 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<ChatEvent> {
     isMinor: session.isMinor,
     summary: conv.summary,
     userTurns: Number(turns[0]?.n ?? 0),
+    userName: session.name,
   });
 
   let controller = new AbortController();

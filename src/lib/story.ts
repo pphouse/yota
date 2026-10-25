@@ -30,12 +30,18 @@ function push(parts: StoryPart[], kind: StoryPart["kind"], raw: string) {
 /**
  * 会話画面での一区切り。
  * line = 誰かの台詞（speaker は personas の添字。分からなければ undefined）、
- * narration = 地の文、note = （…）で囲まれた補足。
+ * narration = 地の文（登場人物の動作・表情。吹き出しの中に斜体で見せる）、
+ * scene = 情景（「>」で始まる行。場所の空気や周りの人の反応を、吹き出しの外に見せる）、
+ * note = （…）で囲まれた補足。
  */
 export type Beat =
   | { kind: "line"; text: string; speaker?: number; open?: boolean }
   | { kind: "narration"; text: string }
+  | { kind: "scene"; text: string }
   | { kind: "note"; text: string };
+
+// 情景の行（> または ＞ で始まる）
+const SCENE_LINE = /^\s*[>＞]\s?/;
 
 const QUOTE = /([^\s「」（）()*。、！？]{1,12})?「([^」]*)(」|$)/g;
 
@@ -91,8 +97,29 @@ function nestQuotes(text: string): string {
   }).join("");
 }
 
-/** 返答を、話者つきの台詞・地の文・補足に分ける。流している途中の閉じていない「も台詞として扱う。 */
+/** 返答を、話者つきの台詞・地の文・情景・補足に分ける。流している途中の閉じていない「も台詞として扱う。 */
 export function toBeats(text: string, names: string[]): Beat[] {
+  const beats: Beat[] = [];
+  let rest: string[] = [];
+  const flush = () => {
+    if (rest.length) beats.push(...beatsOf(rest.join("\n"), names));
+    rest = [];
+  };
+  for (const line of text.split("\n")) {
+    if (!SCENE_LINE.test(line)) {
+      rest.push(line);
+      continue;
+    }
+    flush();
+    const scene = line.replace(SCENE_LINE, "").replaceAll("*", "").trim();
+    if (scene) beats.push({ kind: "scene", text: scene });
+  }
+  flush();
+  return beats;
+}
+
+/** 情景の行を除いた部分を、台詞・地の文・補足に分ける */
+function beatsOf(text: string, names: string[]): Beat[] {
   text = nestQuotes(text);
   const solo = names.length === 1;
   const beats: Beat[] = [];
@@ -168,6 +195,11 @@ export function toBeats(text: string, names: string[]): Beat[] {
 
 /** 名場面カードに載せる一節。台詞「」があればそれを優先する。 */
 export function pickQuote(text: string, max = 90): string {
+  // 情景の行は名場面の一節にしない
+  text = text
+    .split("\n")
+    .filter((l) => !SCENE_LINE.test(l))
+    .join("\n");
   // 「…」と、直前に付いた話者名（陽太「…」）をまとめて拾う
   const speeches = [...text.matchAll(/([^\s「」*。、]{1,8})?「[^」]{4,}」/g)].map((m) => m[0].trim());
   const candidate =
@@ -176,4 +208,50 @@ export function pickQuote(text: string, max = 90): string {
       .map((p) => p.text)
       .join(" ");
   return candidate.length > max ? candidate.slice(0, max - 1) + "…" : candidate;
+}
+
+/** 吹き出しの中身。台詞と、その人物の動作（地の文）を書かれた順に並べる */
+export type BubbleItem = { kind: "line"; text: string; open?: boolean } | { kind: "narration"; text: string };
+
+/** 画面に並べる単位。吹き出し（話者ごと）・情景・補足 */
+export type Block =
+  | { kind: "bubble"; speaker?: number; items: BubbleItem[] }
+  | { kind: "scene"; text: string }
+  | { kind: "note"; text: string };
+
+/**
+ * 区切りを、画面に並べる単位にまとめる。
+ * 地の文は、続く台詞の人物の吹き出しに入れる（最後に残った地の文は、直前の吹き出しに入れる）。
+ * ひとりの作品では、台詞がなくても地の文だけの吹き出しにする。複数人の作品で、どの吹き出しにも入らない地の文は情景として見せる。
+ */
+export function toBlocks(beats: Beat[], solo: boolean): Block[] {
+  const blocks: Block[] = [];
+  let pending: BubbleItem[] = [];
+  const flush = () => {
+    if (!pending.length) return;
+    const last = blocks.at(-1);
+    if (last?.kind === "bubble") last.items.push(...pending);
+    else if (solo) blocks.push({ kind: "bubble", speaker: 0, items: pending });
+    else blocks.push({ kind: "scene", text: pending.map((p) => p.text).join(" ") });
+    pending = [];
+  };
+  for (const b of beats) {
+    if (b.kind === "narration") {
+      pending.push({ kind: "narration", text: b.text });
+      continue;
+    }
+    if (b.kind === "line") {
+      const speaker = solo ? 0 : b.speaker;
+      const item: BubbleItem = { kind: "line", text: b.text, open: b.open };
+      const last = blocks.at(-1);
+      if (last?.kind === "bubble" && speaker !== undefined && last.speaker === speaker) last.items.push(...pending, item);
+      else blocks.push({ kind: "bubble", speaker, items: [...pending, item] });
+      pending = [];
+      continue;
+    }
+    flush();
+    blocks.push({ kind: b.kind, text: b.text });
+  }
+  flush();
+  return blocks;
 }

@@ -50,6 +50,9 @@ const SCHEMA = [
   )`,
 ];
 
+// あとから足した列。作成済みのDBにも足す（すでにあればエラーになるので無視する）
+const MIGRATIONS = [`ALTER TABLE sessions ADD COLUMN name TEXT NOT NULL DEFAULT ''`];
+
 let client: Client | undefined;
 let ready: Promise<void> | undefined;
 
@@ -68,6 +71,7 @@ export async function db(): Promise<Client> {
   const c = getClient();
   ready ??= (async () => {
     for (const stmt of SCHEMA) await c.execute(stmt);
+    for (const stmt of MIGRATIONS) await c.execute(stmt).catch(() => {});
   })();
   await ready;
   return c;

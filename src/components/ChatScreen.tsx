@@ -8,10 +8,11 @@ import { AgeGate } from "@/components/AgeGate";
 import { SceneCard } from "@/components/SceneCard";
 import { AvatarStack } from "@/components/Avatar";
 import { BackIcon, CardIcon, PenIcon, RestartIcon, RetryIcon, SendIcon } from "@/components/icons";
-import { AssistantMessage, UserMessage } from "@/components/StoryMessage";
+import { AssistantMessage, SceneNarration, UserMessage } from "@/components/StoryMessage";
 import { getPlot, VIEWPOINT_LABEL, type Viewpoint } from "@/lib/characters";
 import { api, readEvents, track } from "@/lib/client";
 import { Typewriter } from "@/lib/typewriter";
+import { nameInProse } from "@/lib/username";
 
 type UIMessage = {
   key: string;
@@ -30,10 +31,13 @@ let keySeq = 0;
 const nextKey = () => `k${++keySeq}`;
 const fromStored = (m: Stored): UIMessage => ({ key: m.id, id: m.id, role: m.role, content: m.content, flagged: m.flagged });
 
-type Loaded = { kind: "gate" } | { kind: "error" } | { kind: "ok"; id: string; messages: Stored[] };
+type Loaded = { kind: "gate" } | { kind: "name" } | { kind: "error" } | { kind: "ok"; id: string; messages: Stored[]; name: string };
 
-/** その作品・視点の会話を読み込む。まだなければ最初の一言から始める。 */
+/** その作品・視点の会話を読み込む。まだなければ最初の一言から始める。年齢の確認や名前がまだなら、先にそれを聞く */
 async function fetchConversation(plotId: string, viewpoint: Viewpoint): Promise<Loaded> {
+  const me = await api<{ session: { name: string } | null }>("/api/session");
+  if (me.ok && !me.data.session) return { kind: "gate" };
+  if (me.ok && !me.data.session?.name) return { kind: "name" };
   type Res = { conversation: { id: string } | null; messages: Stored[] };
   let res = await api<Res>(`/api/conversation?plotId=${plotId}&viewpoint=${viewpoint}`);
   if (res.status === 401) return { kind: "gate" };
@@ -41,7 +45,7 @@ async function fetchConversation(plotId: string, viewpoint: Viewpoint): Promise<
     res = await api<Res>(`/api/conversation`, { method: "POST", body: JSON.stringify({ plotId, viewpoint }) });
   }
   if (!res.ok || !res.data.conversation) return { kind: "error" };
-  return { kind: "ok", id: res.data.conversation.id, messages: res.data.messages };
+  return { kind: "ok", id: res.data.conversation.id, messages: res.data.messages, name: me.data.session?.name ?? "" };
 }
 
 export function ChatScreen() {
@@ -53,8 +57,9 @@ export function ChatScreen() {
   const viewpoint: Viewpoint | undefined =
     plot && requested && plot.viewpoints.includes(requested) ? requested : plot?.viewpoints[0];
 
-  const [phase, setPhase] = useState<"loading" | "gate" | "ready">("loading");
+  const [phase, setPhase] = useState<"loading" | "gate" | "name" | "ready">("loading");
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [userName, setUserName] = useState("");
   const [messages, setMessages] = useState<UIMessage[]>([]);
   // receiving = 返答を受け取っている途中、revealing = 受け取り終えて、残りを画面に見せている途中
   const [turn, setTurn] = useState<"idle" | "receiving" | "revealing">("idle");
@@ -76,12 +81,13 @@ export function ChatScreen() {
   const stickRef = useRef(true);
 
   const applyLoaded = useCallback((r: Loaded) => {
-    if (r.kind === "gate") return setPhase("gate");
+    if (r.kind === "gate" || r.kind === "name") return setPhase(r.kind);
     if (r.kind === "error") {
       setNotice({ kind: "error", message: "物語を読み込めませんでした。ページを再読み込みしてください。" });
       return setPhase("ready");
     }
     setConversationId(r.id);
+    setUserName(r.name);
     setMessages(r.messages.map(fromStored));
     setPhase("ready");
   }, []);
@@ -334,7 +340,7 @@ export function ChatScreen() {
   return (
     <div className="relative isolate flex min-h-dvh flex-col">
       {/* 作品の背景。暗くして、上下はさらに地の色へ溶かす。年齢確認のあいだは表紙の絵だけを見せる */}
-      {phase !== "gate" && (
+      {phase !== "gate" && phase !== "name" && (
         <div aria-hidden className="fixed inset-0 -z-10">
           {plot.backdrop && <Image src={plot.backdrop} alt="" fill sizes="100vw" loading="eager" className="object-cover" />}
           <div className="absolute inset-0 bg-night/70" />
@@ -385,11 +391,17 @@ export function ChatScreen() {
         <div className="h-px bg-white/5" />
       </header>
 
-      {phase === "gate" ? (
-        <AgeGate plot={plot} onDone={() => void loadConversation()} />
+      {phase === "gate" || phase === "name" ? (
+        <AgeGate plot={plot} nameOnly={phase === "name"} onDone={() => void loadConversation()} />
       ) : (
         <main className="mx-auto w-full max-w-xl flex-1 px-4 pb-6 pt-5">
           {phase === "loading" && <p className="py-10 text-center text-sm text-mist">物語を開いています</p>}
+          {phase === "ready" && (
+            // プロローグ：作品の舞台を、物語の入口としてナレーションで見せる
+            <div className="mb-6">
+              <SceneNarration text={viewpoint === "self" ? nameInProse(plot.setting, userName) : plot.setting} />
+            </div>
+          )}
           <ol className="space-y-6">
             {messages.map((m) => (
               <li

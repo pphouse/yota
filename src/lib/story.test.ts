@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseStory, pickQuote, toBeats } from "./story";
+import { parseStory, pickQuote, toBeats, toBlocks } from "./story";
 
 describe("parseStory", () => {
   it("地の文と台詞を分ける", () => {
@@ -114,5 +114,41 @@ describe("toBeats", () => {
 
   it("（…）は補足として分ける", () => {
     expect(toBeats("「そうか」\n\n（ダミー応答です）", ["灰原 湊斗"]).at(-1)).toEqual({ kind: "note", text: "ダミー応答です" });
+  });
+});
+
+describe("情景と吹き出し", () => {
+  const duo = ["犬飼 陽太", "白石 透"];
+
+  it("「>」で始まる行は情景にする", () => {
+    expect(toBeats("*顔を上げる* ……なに。\n> 教室が一瞬、静まり返った。", ["皇 白玖"])).toEqual([
+      { kind: "narration", text: "顔を上げる" },
+      { kind: "line", text: "……なに。", speaker: 0 },
+      { kind: "scene", text: "教室が一瞬、静まり返った。" },
+    ]);
+  });
+
+  it("ひとりの作品では、地の文と台詞をひとつの吹き出しにまとめ、情景は外に出す", () => {
+    const blocks = toBlocks(toBeats("*片目だけ開ける* ……なに。\n*頬を机に押しつけたまま見上げる*\n> 女子たちが息をのむ。", ["皇 白玖"]), true);
+    expect(blocks).toEqual([
+      {
+        kind: "bubble",
+        speaker: 0,
+        items: [
+          { kind: "narration", text: "片目だけ開ける" },
+          { kind: "line", text: "……なに。", open: undefined },
+          { kind: "narration", text: "頬を机に押しつけたまま見上げる" },
+        ],
+      },
+      { kind: "scene", text: "女子たちが息をのむ。" },
+    ]);
+  });
+
+  it("ふたりの作品では、地の文を続く台詞の人物の吹き出しに入れる", () => {
+    const blocks = toBlocks(toBeats("陽太「なあ」 *透がペンを置く* 透「……なに」", duo), false);
+    expect(blocks.map((b) => (b.kind === "bubble" ? [b.speaker, b.items.map((i) => i.kind)] : b.kind))).toEqual([
+      [0, ["line"]],
+      [1, ["narration", "line"]],
+    ]);
   });
 });

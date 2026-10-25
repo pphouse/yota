@@ -47,6 +47,7 @@ export async function POST(req: Request) {
       plot,
       viewpoint: conv.viewpoint,
       isMinor: session.isMinor,
+      userName: session.name,
       summary: conv.summary,
       messages,
       previous: parsed.data.previous,

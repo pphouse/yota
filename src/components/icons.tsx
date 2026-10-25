@@ -62,3 +62,11 @@ export const ChevronDownIcon = (p: P) => (
     <path d="M6 9l6 6 6-6" />
   </Svg>
 );
+/** 情景（ナレーション）の印。左にそろえた三本線 */
+export const NarrationIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 7h16" />
+    <path d="M4 12h12" />
+    <path d="M4 17h14" />
+  </Svg>
+);

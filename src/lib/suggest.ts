@@ -16,15 +16,15 @@ const MAX_LEN = 40;
 const CONTEXT_MESSAGES = 8;
 
 /** 返事の候補を考える係へのシステムプロンプト。キャラを演じる返答とは別に、短く呼ぶ。 */
-export function buildSuggestPrompt(ctx: { plot: Plot; viewpoint: Viewpoint; isMinor: boolean; summary: string }): string {
-  const { plot, viewpoint, isMinor, summary } = ctx;
+export function buildSuggestPrompt(ctx: { plot: Plot; viewpoint: Viewpoint; isMinor: boolean; summary: string; userName?: string }): string {
+  const { plot, viewpoint, isMinor, summary, userName } = ctx;
   const names = plot.personas.map(callName);
   const cast = plot.personas.map((p, i) => `- ${names[i]}（${p.age}歳）　${p.personality}`).join("\n");
   const view =
     viewpoint === "self"
       ? [
           "【視点：当事者】",
-          "読者は物語の中にいる「あなた」です。候補は、あなたが登場人物に向けて次に言う言葉か、次にする行動です。登場人物の台詞を書いたり、言い換えたりしません。",
+          `読者は物語の中にいる「あなた」です${userName ? `（名前は「${userName}」。名前を聞かれたら、この名前で答えます）` : ""}。候補は、あなたが登場人物に向けて次に言う言葉か、次にする行動です。登場人物の台詞を書いたり、言い換えたりしません。`,
           "- あなたの立場は【舞台】の「あなた」のとおりです。その立場で言えること・できることだけにします。",
           "- 一人称は「私」か省略します。「俺」「僕」、相手を「お前」と呼ぶ言い方、命令形（〜しろ・〜しなさい）、乱暴な言い方（〜だろ・食う）、方言は使いません。",
           "- 口調は、これまでの【あなた】の発言に合わせます（敬語なら敬語、短くくだけていれば短くくだけた言い方）。まだ発言がなければ、やわらかい話し言葉にします。相手を「あなた」とは呼びません。",
@@ -146,6 +146,7 @@ export async function suggestReplies(input: {
   viewpoint: Viewpoint;
   isMinor: boolean;
   summary: string;
+  userName?: string;
   messages: StoredMessage[];
   /** 前回出した候補（繰り返さないため） */
   previous?: string[];

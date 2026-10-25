@@ -1,10 +1,14 @@
 import { Avatar } from "@/components/Avatar";
+import { NarrationIcon } from "@/components/icons";
 import { callName, type Persona } from "@/lib/characters";
-import { parseStory, toBeats, type Beat } from "@/lib/story";
+import { parseStory, toBeats, toBlocks, type Block } from "@/lib/story";
 
 const AVATAR = 38;
 
-/** キャラの返答。台詞は話者のアイコンつきの吹き出し、地の文はその間に小さく置く。 */
+/**
+ * キャラの返答。台詞とその人物の動作（斜体）を、話者のアイコンつきの吹き出しにまとめる。
+ * 情景（場所の空気や周りの人の反応）は、吹き出しの外にナレーションとして置く。
+ */
 export function AssistantMessage({
   text,
   personas,
@@ -18,54 +22,68 @@ export function AssistantMessage({
   watch?: boolean;
 }) {
   if (streaming && !text) return <Typing persona={personas[0]} />;
-  const beats = toBeats(
-    text,
-    personas.map((p) => p.name),
+  const blocks = toBlocks(
+    toBeats(
+      text,
+      personas.map((p) => p.name),
+    ),
+    personas.length === 1,
   );
-  // 同じ人の台詞が続くときは、アイコンと名前を最初の一つだけにする
-  const continued = beats.map((b, i) => {
-    const prev = beats[i - 1];
-    return b.kind === "line" && b.speaker !== undefined && prev?.kind === "line" && prev.speaker === b.speaker;
-  });
   return (
-    <div className="space-y-2.5">
-      {beats.map((b, i) => (
-        <BeatView key={i} beat={b} personas={personas} continued={continued[i]} watch={watch} />
+    <div className="space-y-3.5">
+      {blocks.map((b, i) => (
+        <BlockView key={i} block={b} personas={personas} watch={watch} />
       ))}
     </div>
   );
 }
 
-function BeatView({ beat, personas, continued, watch }: { beat: Beat; personas: Persona[]; continued: boolean; watch?: boolean }) {
-  if (beat.kind === "narration") {
-    return <p className="px-1 text-[0.84rem] leading-[1.85] text-mist">{beat.text}</p>;
-  }
-  if (beat.kind === "note") {
+/** 情景・プロローグ。三本線の印と斜体の文で、吹き出しの外に置く */
+export function SceneNarration({ text }: { text: string }) {
+  return (
+    <div className="flex gap-2.5 px-1">
+      <NarrationIcon size={17} className="mt-[0.3rem] shrink-0 text-mist/80" />
+      <p className="break-phrase whitespace-pre-wrap text-[0.9rem] italic leading-[1.85] text-mist">{text}</p>
+    </div>
+  );
+}
+
+function BlockView({ block, personas, watch }: { block: Block; personas: Persona[]; watch?: boolean }) {
+  if (block.kind === "scene") return <SceneNarration text={block.text} />;
+  if (block.kind === "note") {
     return (
       <p className="py-1 text-center">
-        <span className="inline-block rounded-full bg-night-2/90 px-3 py-1 text-[0.7rem] leading-5 text-mist">{beat.text}</span>
+        <span className="inline-block rounded-full bg-night-2/90 px-3 py-1 text-[0.7rem] leading-5 text-mist">{block.text}</span>
       </p>
     );
   }
-  const persona = beat.speaker === undefined ? undefined : personas[beat.speaker];
-  const right = watch && beat.speaker === 1;
+  const persona = block.speaker === undefined ? undefined : personas[block.speaker];
+  const right = watch && block.speaker === 1;
   return (
     <div className={`flex items-start gap-2.5 ${right ? "flex-row-reverse" : ""}`}>
-      {persona && !continued ? <Avatar persona={persona} size={AVATAR} /> : <span className="shrink-0" style={{ width: AVATAR }} />}
-      <div className={`flex min-w-0 max-w-[80%] flex-col ${right ? "items-end" : "items-start"}`}>
-        {persona && !continued && (
+      {persona ? <Avatar persona={persona} size={AVATAR} /> : <span className="shrink-0" style={{ width: AVATAR }} />}
+      <div className={`flex min-w-0 max-w-[82%] flex-col ${right ? "items-end" : "items-start"}`}>
+        {persona && (
           <span className="mb-1 px-1 text-[0.74rem] font-bold" style={{ color: persona.color }}>
             {callName(persona)}
           </span>
         )}
-        <p
-          className={`whitespace-pre-wrap rounded-[1.25rem] bg-night-3 px-4 py-2.5 text-[0.97rem] leading-[1.75] text-paper ${
-            right ? "rounded-tr-[0.4rem]" : "rounded-tl-[0.4rem]"
-          }`}
+        <div
+          className={`space-y-2 rounded-[1.25rem] bg-night-3 px-4 py-3 ${right ? "rounded-tr-[0.4rem]" : "rounded-tl-[0.4rem]"}`}
         >
-          {beat.text}
-          {beat.open && <span className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] animate-pulse bg-paper/70" />}
-        </p>
+          {block.items.map((item, i) =>
+            item.kind === "narration" ? (
+              <p key={i} className="break-phrase whitespace-pre-wrap text-[0.88rem] italic leading-[1.8] text-mist">
+                {item.text}
+              </p>
+            ) : (
+              <p key={i} className="whitespace-pre-wrap text-[0.97rem] leading-[1.75] text-paper">
+                {item.text}
+                {item.open && <span className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] animate-pulse bg-paper/70" />}
+              </p>
+            ),
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { Featured } from "@/components/Featured";
 import { PlotList } from "@/components/PlotList";
+import { UserName } from "@/components/UserName";
 import { PLOTS } from "@/lib/characters";
 
 export default function Home() {
@@ -8,7 +9,7 @@ export default function Home() {
       <header className="sticky top-0 z-20 bg-night/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
         <div className="flex h-14 items-center justify-between px-5">
           <p className="text-brand-grad text-[1.6rem] font-black leading-none tracking-tight">yota</p>
-          <span className="rounded-full bg-night-3 px-3 py-1.5 text-[0.7rem] font-bold text-mist">広告なし</span>
+          <UserName />
         </div>
       </header>
       <div className="px-5 pt-3">
