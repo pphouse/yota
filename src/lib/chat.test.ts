@@ -111,6 +111,22 @@ describe("runTurn", () => {
     expect(msgs.at(-1)).toMatchObject({ content: "*マスクのひもを摘む* ……ここじゃ、だめ", flagged: false });
   });
 
+  it("1文字も返ってこなかったら、1回だけ作り直す", async () => {
+    const conv = await newConv();
+    let calls = 0;
+    const flaky: LLMProvider = {
+      name: "flaky",
+      async *stream() {
+        calls++;
+        if (calls > 1) yield "……座って";
+      },
+    };
+    const events = await collect(runTurn({ session: adult, conversation: conv, plot, provider: flaky, message: "こんばんは" }));
+    expect(calls).toBe(2);
+    expect(events).toContainEqual({ t: "rewrite", v: "……座って" });
+    expect((await listMessages(conv.id)).at(-1)?.content).toBe("……座って");
+  });
+
   it("再生成は最後の返答を作り直し、オープニングは消さない", async () => {
     const conv = await newConv();
     await collect(runTurn({ session: adult, conversation: conv, plot, provider: new MockProvider(0), message: "やあ" }));

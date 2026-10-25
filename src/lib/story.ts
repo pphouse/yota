@@ -52,6 +52,20 @@ function speakerOf(prefix: string, names: string[]): number | undefined {
   return i >= 0 ? i : undefined;
 }
 
+/** 名前の前に言葉がくっついたとき（そう言って一条「…」）。末尾が名前なら、その人と、前に残った言葉を返す */
+function speakerAtEnd(prefix: string, names: string[]): { speaker: number; rest: string } | undefined {
+  const p = normalizeName(prefix);
+  let best: { speaker: number; rest: string; len: number } | undefined;
+  names.forEach((n, i) => {
+    for (const part of [normalizeName(n), ...normalizeName(n).split(/[\s・]/)]) {
+      if (part && p.length > part.length && p.endsWith(part) && part.length > (best?.len ?? 0)) {
+        best = { speaker: i, rest: prefix.slice(0, prefix.length - part.length), len: part.length };
+      }
+    }
+  });
+  return best && { speaker: best.speaker, rest: best.rest };
+}
+
 /**
  * ひとりの作品では、台詞が「」なしで書かれることが多い。文の途中の「…」（俺は「取れた」と…）は強調や引用なので、
  * 吹き出しを分けないよう『…』にする。行の頭・文の終わり・」・名前のあとの「は、台詞の始まりのまま残す。
@@ -76,6 +90,8 @@ export function toBeats(text: string, names: string[]): Beat[] {
       const t = piece.trim();
       if (!t) continue;
       if (/^[（(]/.test(t)) beats.push({ kind: "note", text: t.replace(/^[（(]|[）)]$/g, "") });
+      // 地の文の前に名前だけが置かれたとき（静*皿の縁を…*）は、名前だけの行を出さない
+      else if (!solo && speakerOf(t, names) !== undefined) continue;
       else if (solo) beats.push({ kind: "line", text: t, speaker: 0 });
       else beats.push({ kind: "narration", text: t });
     }
@@ -108,7 +124,23 @@ export function toBeats(text: string, names: string[]): Beat[] {
     for (const m of src.matchAll(QUOTE)) {
       const prefix = m[1];
       let speaker = prefix ? speakerOf(prefix, names) : undefined;
-      loose(src.slice(last, m.index) + (prefix && speaker === undefined ? prefix : ""));
+      let before = src.slice(last, m.index);
+      if (prefix && speaker === undefined && !solo) {
+        const tail = speakerAtEnd(prefix, names);
+        if (tail) {
+          speaker = tail.speaker;
+          before += tail.rest;
+        } else {
+          // 登場人物でない人（店長・元部下など）の台詞は、名前なしの吹き出しにせず、地の文として名前ごと見せる
+          loose(before);
+          beats.push({ kind: "narration", text: `${prefix}「${m[2].trim()}${m[3]}` });
+          last = (m.index ?? 0) + m[0].length;
+          continue;
+        }
+      } else if (prefix && speaker === undefined) {
+        before += prefix;
+      }
+      loose(before);
       if (speaker === undefined && solo) speaker = 0;
       const unclosed = m[3] === "";
       const body = m[2].trim();

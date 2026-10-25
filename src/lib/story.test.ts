@@ -56,6 +56,27 @@ describe("toBeats", () => {
     expect(toBeats("一條「……あ、ありがとう」", ["一条", "久住"])[0]).toMatchObject({ speaker: 0 });
   });
 
+  it("名前の前に言葉がくっついても、末尾の名前を話者にする", () => {
+    expect(toBeats("そう言って透「……寝ろ」", duo)).toEqual([
+      { kind: "narration", text: "そう言って" },
+      { kind: "line", text: "……寝ろ", speaker: 1, open: false },
+    ]);
+  });
+
+  it("登場人物でない人の台詞は、名前ごと地の文にする", () => {
+    expect(toBeats("元部下「城へお戻りを」 透「……誰だ」", duo)).toEqual([
+      { kind: "narration", text: "元部下「城へお戻りを」" },
+      { kind: "line", text: "……誰だ", speaker: 1, open: false },
+    ]);
+  });
+
+  it("地の文の前に名前だけが置かれても、名前だけの行は出さない", () => {
+    expect(toBeats("透*皿の縁をつまむ* 陽太「なに」", duo)).toEqual([
+      { kind: "narration", text: "皿の縁をつまむ" },
+      { kind: "line", text: "なに", speaker: 0, open: false },
+    ]);
+  });
+
   it("流している途中の閉じていない台詞も台詞として出す", () => {
     expect(toBeats("透「言ったら、お前は", duo)).toEqual([{ kind: "line", text: "言ったら、お前は", speaker: 1, open: true }]);
   });

@@ -13,6 +13,8 @@ const Body = z.object({
   conversationId: z.string(),
   /** どの返答に対する候補か。最後の返答と違えば（書き直し直後など）作らない */
   messageId: z.string(),
+  /** 前回出した候補。同じ物や動作を繰り返さないように渡す */
+  previous: z.array(z.string().max(60)).max(3).optional(),
 });
 
 /** 最後のキャラの返答に続く、返事の候補を返す */
@@ -47,6 +49,7 @@ export async function POST(req: Request) {
       isMinor: session.isMinor,
       summary: conv.summary,
       messages,
+      previous: parsed.data.previous,
       provider,
       signal: req.signal,
     });

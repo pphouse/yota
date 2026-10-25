@@ -2,25 +2,30 @@ import { readSSE } from "./sse";
 import { LLMError, type GenerateRequest, type LLMProvider } from "./types";
 
 // 推論モデルは、考えた分も max_completion_tokens を使う。返答の長さとは別に、考える量に応じた余裕を足す
-// （足りないと、考えるだけで枠を使い切って本文が空になる。qwen は medium でも候補づくりに2000トークン以上考えることがある）
-const REASONING_HEADROOM: Record<string, number> = { low: 400, medium: 3000, high: 6000 };
+// （足りないと、考えるだけで枠を使い切って本文が空になる。qwen は medium でも3000トークン以上考えることがある。上限なので、使わなければ増えない）
+const REASONING_HEADROOM: Record<string, number> = { none: 0, low: 1000, medium: 6000, high: 10000 };
 
 // OpenAI互換の Chat Completions（ストリーミング）。OPENAI_BASE_URL で互換API（Cerebras など）にも向けられる。
 export class OpenAIProvider implements LLMProvider {
   readonly name = "openai";
   private readonly baseUrl: string;
   private readonly reasoningEffort?: string;
+  private readonly briefReasoningEffort?: string;
 
   constructor(
     private readonly apiKey: string,
     private readonly models: { fast: string; quality: string },
-    opts: { baseUrl?: string; reasoningEffort?: string } = {},
+    opts: { baseUrl?: string; reasoningEffort?: string; briefReasoningEffort?: string } = {},
   ) {
     this.baseUrl = opts.baseUrl || "https://api.openai.com/v1";
     this.reasoningEffort = opts.reasoningEffort || undefined;
+    // 短い出力の考える量。qwen は low でも長く考えるので none を指定する（gpt-oss は none を受け付けないので low）
+    this.briefReasoningEffort = opts.briefReasoningEffort || (this.reasoningEffort === "none" ? "none" : "low");
   }
 
   async *stream(req: GenerateRequest): AsyncIterable<string> {
+    // 考える量は、推論モデルを使っているとき（OPENAI_REASONING_EFFORT を設定したとき）だけ送る
+    const effort = this.reasoningEffort && (req.brief ? this.briefReasoningEffort : this.reasoningEffort);
     const res = await fetch(`${this.baseUrl}/chat/completions`, {
       method: "POST",
       signal: req.signal,
@@ -30,9 +35,9 @@ export class OpenAIProvider implements LLMProvider {
       },
       body: JSON.stringify({
         model: this.models[req.tier],
-        max_completion_tokens: (req.maxTokens ?? 700) + (this.reasoningEffort ? (REASONING_HEADROOM[this.reasoningEffort] ?? 3000) : 0),
+        max_completion_tokens: (req.maxTokens ?? 700) + (effort ? (REASONING_HEADROOM[effort] ?? 6000) : 0),
         // 推論モデル（gpt-oss など）の考える量。推論しないモデルに送るとエラーになるため、設定したときだけ付ける
-        ...(this.reasoningEffort ? { reasoning_effort: this.reasoningEffort } : {}),
+        ...(effort ? { reasoning_effort: effort } : {}),
         stream: true,
         messages: [{ role: "system", content: req.system }, ...req.messages],
       }),

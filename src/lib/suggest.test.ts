@@ -3,7 +3,7 @@ import { getPlot } from "./characters";
 import { MockProvider } from "./llm/mock";
 import type { GenerateRequest, LLMProvider } from "./llm/types";
 import type { StoredMessage } from "./store";
-import { buildSuggestPrompt, buildSuggestRequest, parseSuggestions, suggestReplies, SUGGESTION_COUNT } from "./suggest";
+import { buildSuggestPrompt, buildSuggestRequest, parseSuggestions, suggestReplies, SUGGESTION_COUNT, WATCH_FALLBACK } from "./suggest";
 
 const barista = getPlot("midnight-barista")!;
 const manzai = getPlot("manzai-roommates")!;
@@ -41,6 +41,11 @@ describe("parseSuggestions", () => {
     expect(parseSuggestions(text, "self")).toEqual(["ほんとに？"]);
     expect(parseSuggestions("透が俺の席に座る", "watch")).toEqual(["透が俺の席に座る"]);
   });
+
+  it("途中で切れた候補と、読点で言葉をぶつ切りにした候補を除く", () => {
+    const text = ["久住が、前髪を直した指を", "久住が、廊下の音に、肩を、上げる", "久住が前髪をつまむ"].join("\n");
+    expect(parseSuggestions(text, "watch")).toEqual(["久住が前髪をつまむ"]);
+  });
 });
 
 describe("buildSuggestPrompt / buildSuggestRequest", () => {
@@ -61,7 +66,12 @@ describe("buildSuggestPrompt / buildSuggestRequest", () => {
     expect(req).not.toContain("発言0");
     expect(req).toContain("【あなた】発言11");
     expect(req).toContain("発言10");
-    expect(buildSuggestRequest(messages, "self", "湊斗")).toContain("【湊斗】発言10");
+    expect(buildSuggestRequest(messages, "self", { speaker: "湊斗" })).toContain("【湊斗】発言10");
+    expect(buildSuggestRequest(messages, "watch", { previous: ["遠くで太鼓が鳴る"] })).toContain("【前回の候補】遠くで太鼓が鳴る");
+    const polite = [msg("user", "目、閉じててください", 1), msg("assistant", "……近いな", 2), msg("user", "*手を止める* 嫌だった？", 3)];
+    expect(buildSuggestRequest(polite, "self")).toContain("くだけた話し言葉");
+    polite[2] = msg("user", "*手を止める* 嫌でしたか？ 離しますね", 3);
+    expect(buildSuggestRequest(polite, "self")).toContain("です・ます で話しています");
   });
 });
 
@@ -95,6 +105,12 @@ describe("suggestReplies", () => {
     expect(seen?.purpose).toBe("suggest");
     expect(seen?.messages).toHaveLength(1);
     expect(seen?.messages[0].content).toContain("【あなた】今日は疲れた");
+  });
+
+  it("見守りで2回とも取り出せなかったときは、続きを見る選択肢だけ出す", async () => {
+    const empty: LLMProvider = { name: "empty", async *stream() { yield ""; } };
+    const out = await suggestReplies({ plot: manzai, viewpoint: "watch", isMinor: false, summary: "", messages, provider: empty });
+    expect(out).toEqual([WATCH_FALLBACK]);
   });
 
   it("1つも取り出せなかったときは、1回だけ作り直す", async () => {

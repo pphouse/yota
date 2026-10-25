@@ -126,8 +126,9 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<ChatEvent> {
     input.signal?.removeEventListener("abort", onAbort);
   }
 
-  if (foreign) {
-    // 作り直しは1回だけ。それでも混ざったら、ハングルなどの語だけ取り除いて使う
+  if (!flagged && (foreign || !text.trim())) {
+    // 日本語以外が混ざったとき、または1文字も返ってこなかったときは、1回だけ作り直す。
+    // それでも混ざったら、ハングルなどの語だけ取り除いて使う
     try {
       text = await generateText(provider, { ...request, signal: input.signal });
     } catch (err) {

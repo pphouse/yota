@@ -12,6 +12,11 @@ export type GenerateRequest = {
   signal?: AbortSignal;
   /** 用途。実プロバイダは無視し、ダミー応答の出し分けにだけ使う。 */
   purpose?: "chat" | "summary" | "suggest";
+  /**
+   * 返事の候補のような短い出力。推論モデルでは考える量を減らす（OPENAI_SUGGEST_REASONING_EFFORT）。
+   * 考えすぎると、枠を使い切って本文が空になる。
+   */
+  brief?: boolean;
 };
 
 export interface LLMProvider {
