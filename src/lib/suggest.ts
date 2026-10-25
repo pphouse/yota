@@ -19,7 +19,7 @@ export function buildSuggestPrompt(ctx: { plot: Plot; viewpoint: Viewpoint; isMi
           "【視点：当事者】",
           "読者は物語の中にいる「あなた」です。候補は、あなたが次に言う台詞か、次にする行動です。",
           "- 3つの方向を変えてください：素直に応える／少し踏み込む・からかう／行動で返す。",
-          "- 台詞は「」を付けずに書きます。行動は *アスタリスク* で囲みます（例：*黙ってうなずく*）。",
+          "- 台詞は「」を付けずに書きます。行動は *アスタリスク* で囲みます（例：*黙ってうなずく*）。台詞と行動を1つの候補に混ぜません。",
         ]
       : [
           "【視点：見守り】",
@@ -77,7 +77,7 @@ export function parseSuggestions(text: string): string[] {
   return out;
 }
 
-/** 最後のキャラの返答に続く、返事の候補を作る */
+/** 最後のキャラの返答に続く、返事の候補を作る。1つも取り出せなかったときは1回だけ作り直す */
 export async function suggestReplies(input: {
   plot: Plot;
   viewpoint: Viewpoint;
@@ -87,13 +87,18 @@ export async function suggestReplies(input: {
   provider: LLMProvider;
   signal?: AbortSignal;
 }): Promise<string[]> {
-  const text = await generateText(input.provider, {
+  const req = {
     system: buildSuggestPrompt(input),
-    messages: [{ role: "user", content: buildSuggestRequest(input.messages, input.viewpoint) }],
-    tier: "fast",
-    maxTokens: 300,
+    messages: [{ role: "user" as const, content: buildSuggestRequest(input.messages, input.viewpoint) }],
+    tier: "fast" as const,
+    // 推論モデルは考える分もこの枠を使い、回によって膨らむので、候補の長さより大きめにとる
+    maxTokens: 600,
     signal: input.signal,
-    purpose: "suggest",
-  });
-  return parseSuggestions(text);
+    purpose: "suggest" as const,
+  };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const out = parseSuggestions(await generateText(input.provider, req));
+    if (out.length > 0 || input.signal?.aborted) return out;
+  }
+  return [];
 }

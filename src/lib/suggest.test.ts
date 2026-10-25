@@ -88,4 +88,18 @@ describe("suggestReplies", () => {
     expect(seen?.messages).toHaveLength(1);
     expect(seen?.messages[0].content).toContain("【あなた】今日は疲れた");
   });
+
+  it("1つも取り出せなかったときは、1回だけ作り直す", async () => {
+    let calls = 0;
+    const flaky: LLMProvider = {
+      name: "flaky",
+      async *stream() {
+        calls++;
+        yield calls === 1 ? "" : "ありがとう\nまた来るね\n*うなずく*";
+      },
+    };
+    const out = await suggestReplies({ plot: barista, viewpoint: "self", isMinor: false, summary: "", messages, provider: flaky });
+    expect(out).toEqual(["ありがとう", "また来るね", "*うなずく*"]);
+    expect(calls).toBe(2);
+  });
 });
