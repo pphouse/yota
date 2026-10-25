@@ -16,9 +16,14 @@ export const HOOK_DEADLINE_TURNS = 3;
 export function buildSystemPrompt(ctx: PromptContext): string {
   const { plot, viewpoint, isMinor, summary, userTurns } = ctx;
   const cast = plot.personas
-    .map(
-      (p) =>
-        `- 名前：${p.name}（${p.age}歳）\n  人物：${p.profile}\n  性格：${p.personality}\n  口調：${p.speech}`,
+    .map((p) =>
+      [
+        `- 名前：${p.name}（${p.age}歳）`,
+        `  人物：${p.profile}`,
+        `  性格：${p.personality}`,
+        `  口調：${p.speech}（例の台詞はそのまま使わず、毎回言い回しを変える）`,
+        ...(p.topics?.length ? [`  話の引き出し：${p.topics.join("／")}（会話の流れで、少しずつ明かす）`] : []),
+      ].join("\n"),
     )
     .join("\n");
 
@@ -35,6 +40,20 @@ export function buildSystemPrompt(ctx: PromptContext): string {
           "ユーザーは物語に登場しません。登場人物同士のやり取りを、少し離れたところから眺める読者です。",
           "ユーザーの入力は「こんな展開が見たい」という演出の指示、または読者のつぶやきとして扱い、物語に反映してください。",
           "登場人物はユーザーの存在に気づかず、ユーザーに話しかけてはいけません。必ず複数の登場人物の掛け合いを書いてください。",
+        ];
+
+  const talk =
+    viewpoint === "self"
+      ? [
+          "【会話】",
+          "- まず、ユーザーの言葉に具体的に応えてください。質問されたら、キャラクターとしてちゃんと答えます（はぐらかし続けない）。",
+          "- 直前までの返答と同じ台詞・同じ行動・同じ締め方を繰り返さないでください。飲み物などの小道具は、台詞でも地の文でも毎回は出しません。",
+          "- 話の引き出しを使って、キャラクターの過去や好み、本音を少しずつ見せてください。ときどき自分から話題を出したり問い返したりしますが、毎回質問で終わらせないこと。",
+        ]
+      : [
+          "【会話】",
+          "- ユーザーの見たい展開を、具体的な場面として物語に起こしてください。",
+          "- 登場人物に同じ台詞・同じ行動を繰り返させず、毎回やり取りを一歩進めてください。話の引き出しも使います。",
         ];
 
   const hook =
@@ -87,6 +106,8 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     cast,
     "",
     ...view,
+    "",
+    ...talk,
     "",
     ...hook,
     "",

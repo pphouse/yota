@@ -45,12 +45,13 @@ LLM_PROVIDER=openai
 OPENAI_API_KEY=csk-...                       # Cerebras のキー
 OPENAI_BASE_URL=https://api.cerebras.ai/v1
 OPENAI_MODEL_FAST=gpt-oss-120b
-OPENAI_REASONING_EFFORT=low
+OPENAI_REASONING_EFFORT=medium
 ```
 
 - 実際に会話して確認済み（2026-10-25）。文章AIは最初の文字まで約0.3秒、返答全体も1秒足らずで返してくる（画面では、貯めておいて人が書くくらいの速さで見せる）。
 - 返答の長さはプロンプトで短く指定している（主人公モード40〜120字、見守りモード80〜160字、地の文は1つまで）。長いと読む負担が大きいため。
-- gpt-oss は推論モデルで、推論の分も `max_completion_tokens`（700）の枠を使います。`low` なら推論は十数トークンで足りますが、`medium` だと数百トークンを使って返答が短くなり、枠を使い切って空の返答になることがありました。会話には `low` を使ってください。
+- gpt-oss は推論モデルで、推論の分も `max_completion_tokens` の枠を使います。`openai.ts` が推論の量に応じた余裕（low +400、medium +1200、high +4000）を自動で足すので、枠を使い切って空の返答になることはありません。
+- `medium` にしているのは、`low` だとキャラ設定や「同じことを繰り返さない」などの指示が守られにくかったため（バリスタが何を言われても「飲め」と返す、毎回質問で締める、など）。`medium` で考える時間は0.2秒ほど増えますが、画面では文字を少しずつ見せるので気になりません。
 - 推論の途中経過（`delta.reasoning`）は画面に出さず、本文だけを流します。
 - `OPENAI_REASONING_EFFORT` は推論モデルにだけ設定します（推論しないモデルに送るとエラーになります）。
 

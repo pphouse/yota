@@ -92,4 +92,12 @@ describe("OpenAIProvider（互換API）", () => {
     expect(calls[0].body).not.toHaveProperty("reasoning_effort");
     expect(calls[1].body).toMatchObject({ model: "gpt-oss-120b", reasoning_effort: "low", stream: true });
   });
+
+  it("推論させるときは、考える分の余裕を max_completion_tokens に足す", async () => {
+    const calls = stubFetch([{ choices: [{ delta: { content: "x" } }] }]);
+    await generateText(createProvider(env), { ...req, maxTokens: 300 });
+    await generateText(createProvider({ ...env, OPENAI_REASONING_EFFORT: "medium" }), { ...req, maxTokens: 300 });
+    expect(calls[0].body.max_completion_tokens).toBe(300);
+    expect(calls[1].body.max_completion_tokens).toBeGreaterThan(1000);
+  });
 });

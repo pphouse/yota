@@ -91,8 +91,7 @@ export async function suggestReplies(input: {
     system: buildSuggestPrompt(input),
     messages: [{ role: "user" as const, content: buildSuggestRequest(input.messages, input.viewpoint) }],
     tier: "fast" as const,
-    // 推論モデルは考える分もこの枠を使い、回によって膨らむので、候補の長さより大きめにとる
-    maxTokens: 600,
+    maxTokens: 300,
     signal: input.signal,
     purpose: "suggest" as const,
   };
