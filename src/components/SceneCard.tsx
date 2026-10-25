@@ -7,9 +7,12 @@ import { pickQuote } from "@/lib/story";
 
 const W = 1080;
 const H = 1350;
-const MINCHO = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
-const GOTHIC = '"Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", sans-serif';
-const NIGHT = "#1d1838";
+const BAND = 310;
+const GOTHIC = '"Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif';
+const NIGHT = "#0f0f13";
+const PAPER = "#f5f5f7";
+const MIST = "#a3a3ae";
+const TAGLINE = "この続きは、あなたが書く。";
 // 行頭に来てはいけない文字（簡易の禁則処理）
 const NO_START = "、。，．」』）！？ー…・～っゃゅょァィゥェォッャュョ";
 
@@ -34,94 +37,97 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, width: number): strin
   return lines;
 }
 
-/** 2色を混ぜる（pct は a の割合） */
-function mix(a: string, b: string, pct: number): string {
-  const hex = (c: string) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16));
-  const [x, y] = [hex(a), hex(b)];
-  return `rgb(${x.map((v, i) => Math.round(v * pct + y[i] * (1 - pct))).join(",")})`;
+/** ブランドのグラデーション（ピンク→紫）を x0〜x1 に敷く */
+function brand(ctx: CanvasRenderingContext2D, x0: number, x1: number): CanvasGradient {
+  const g = ctx.createLinearGradient(x0, 0, x1, 0);
+  g.addColorStop(0, "#ff4f9a");
+  g.addColorStop(0.55, "#c254f0");
+  g.addColorStop(1, "#8a5cff");
+  return g;
 }
 
-function draw(canvas: HTMLCanvasElement, plot: Plot, quote: string) {
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function draw(canvas: HTMLCanvasElement, plot: Plot, quote: string, cover: HTMLImageElement | null) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   canvas.width = W;
   canvas.height = H;
-  const [a, b] = plot.personas;
-  const obiTop = H - 330;
+  const bandTop = H - BAND;
+  ctx.fillStyle = NIGHT;
+  ctx.fillRect(0, 0, W, H);
 
-  // 地：表紙と同じく、ひとりなら推し色、ふたりなら斜めに二色
-  if (b) {
-    ctx.fillStyle = mix(a.color, NIGHT, 0.5);
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = mix(b.color, NIGHT, 0.44);
-    ctx.beginPath();
-    ctx.moveTo(W, obiTop * 0.25);
-    ctx.lineTo(W, H);
-    ctx.lineTo(0, H);
-    ctx.lineTo(0, obiTop * 0.95);
-    ctx.closePath();
-    ctx.fill();
+  // 上部：表紙の絵を上合わせで敷く（絵がなければ推し色をほのかに）
+  if (cover) {
+    const scale = Math.max(W / cover.width, bandTop / cover.height);
+    const dw = cover.width * scale;
+    ctx.drawImage(cover, (W - dw) / 2, 0, dw, cover.height * scale);
   } else {
-    const g = ctx.createRadialGradient(W * 0.85, 0, 0, W * 0.85, 0, H);
-    g.addColorStop(0, mix(a.color, NIGHT, 0.62));
-    g.addColorStop(0.8, mix(a.color, NIGHT, 0.22));
+    const g = ctx.createRadialGradient(W * 0.8, 0, 0, W * 0.8, 0, bandTop);
+    g.addColorStop(0, plot.personas[0].color);
+    g.addColorStop(1, NIGHT);
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, W, bandTop);
   }
-  // 背表紙の折り目
-  ctx.fillStyle = "rgba(0,0,0,0.25)";
-  ctx.fillRect(0, 0, 22, H);
-  ctx.fillStyle = "rgba(255,255,255,0.15)";
-  ctx.fillRect(22, 0, 3, H);
+  // 下へ暗くして、台詞を読めるようにする
+  const shade = ctx.createLinearGradient(0, bandTop * 0.28, 0, bandTop);
+  shade.addColorStop(0, "rgba(15,15,19,0)");
+  shade.addColorStop(0.5, "rgba(15,15,19,0.74)");
+  shade.addColorStop(1, "rgba(15,15,19,0.98)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(0, 0, W, bandTop);
 
-  // アイコン
-  plot.personas.forEach((p, i) => {
-    const cx = 120 + i * 62;
-    ctx.beginPath();
-    ctx.arc(cx, 130, 44, 0, Math.PI * 2);
-    ctx.fillStyle = NIGHT;
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx, 130, 38, 0, Math.PI * 2);
-    ctx.fillStyle = p.color;
-    ctx.fill();
-    ctx.fillStyle = NIGHT;
-    ctx.font = `700 38px ${MINCHO}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(p.mark, cx, 132);
-  });
-
-  // 台詞
+  // 台詞（下寄せ）
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "#f7f3ff";
-  ctx.font = `700 64px ${MINCHO}`;
-  const lines = wrap(ctx, quote, W - 120 - 110).slice(0, 7);
-  const lineH = 64 * 1.7;
-  const areaTop = 250;
-  const areaH = obiTop - areaTop - 40;
-  const top = areaTop + (areaH - lines.length * lineH) / 2 + 64;
-  ctx.shadowColor = "rgba(0,0,0,0.35)";
-  ctx.shadowBlur = 18;
-  lines.forEach((l, i) => ctx.fillText(l, 120, top + i * lineH));
+  ctx.fillStyle = PAPER;
+  ctx.font = `700 58px ${GOTHIC}`;
+  const lines = wrap(ctx, quote, W - 88 * 2).slice(0, 6);
+  const lineH = 58 * 1.62;
+  const bottom = bandTop - 70;
+  ctx.shadowColor = "rgba(0,0,0,0.55)";
+  ctx.shadowBlur = 20;
+  lines.forEach((l, i) => ctx.fillText(l, 88, bottom - (lines.length - 1 - i) * lineH));
   ctx.shadowBlur = 0;
 
-  // 帯
-  ctx.fillStyle = mix(a.color, "#fbf8ff", 0.16);
-  ctx.fillRect(0, obiTop, W, H - obiTop);
+  // 下の帯：ブランドの線、タイトル、推し色の名前、yota
   ctx.fillStyle = NIGHT;
-  ctx.font = `700 50px ${MINCHO}`;
-  ctx.fillText(`『${plot.title}』`, 96, obiTop + 104);
-  ctx.fillStyle = "rgba(29,24,56,0.6)";
-  ctx.font = `500 30px ${GOTHIC}`;
-  ctx.fillText(plot.personas.map((p) => p.name).join(" × "), 120, obiTop + 160);
-  ctx.fillStyle = NIGHT;
-  ctx.font = `500 32px ${GOTHIC}`;
-  ctx.fillText("この続きは、あなたが書く。", 120, H - 76);
+  ctx.fillRect(0, bandTop, W, BAND);
+  ctx.fillStyle = brand(ctx, 0, W);
+  ctx.fillRect(0, bandTop, W, 6);
+
+  ctx.fillStyle = PAPER;
+  ctx.font = `900 50px ${GOTHIC}`;
+  ctx.fillText(plot.title, 88, bandTop + 100, W - 88 * 2);
+
+  ctx.font = `700 32px ${GOTHIC}`;
+  let x = 88;
+  plot.personas.forEach((p, i) => {
+    if (i > 0) {
+      ctx.fillStyle = MIST;
+      ctx.fillText(" × ", x, bandTop + 160);
+      x += ctx.measureText(" × ").width;
+    }
+    ctx.fillStyle = p.color;
+    ctx.fillText(p.name, x, bandTop + 160);
+    x += ctx.measureText(p.name).width;
+  });
+
+  ctx.fillStyle = MIST;
+  ctx.font = `500 28px ${GOTHIC}`;
+  ctx.fillText(TAGLINE, 88, H - 62);
   ctx.textAlign = "right";
-  ctx.font = `700 52px ${MINCHO}`;
-  ctx.fillText("yota", W - 90, H - 72);
+  ctx.font = `900 72px ${GOTHIC}`;
+  const logo = ctx.measureText("yota").width;
+  ctx.fillStyle = brand(ctx, W - 84 - logo, W - 84);
+  ctx.fillText("yota", W - 84, H - 56);
 }
 
 export function SceneCard({
@@ -148,22 +154,24 @@ export function SceneCard({
     if (!canvas) return;
     let objectUrl: string | null = null;
     let alive = true;
-    // 書体を読み込んでから描く（読み込み前だと代わりの書体で描かれてしまう）
-    const sample = quote + plot.title + plot.personas.map((p) => p.name + p.mark).join("") + "この続きはあなたが書く。yota『』×";
+    // 書体（900を含む）と表紙の絵を読み込んでから描く（読み込み前だと代わりの書体や空の絵で描かれてしまう）
+    const sample = quote + plot.title + plot.personas.map((p) => p.name).join("") + TAGLINE + "yota ×";
     void Promise.all([
-      document.fonts.load(`700 64px ${MINCHO}`, sample),
-      document.fonts.load(`500 30px ${GOTHIC}`, sample),
-    ])
-      .catch(() => undefined)
-      .then(() => {
-        if (!alive) return;
-        draw(canvas, plot, quote);
-        canvas.toBlob((blob) => {
-          if (!blob || !alive) return;
-          objectUrl = URL.createObjectURL(blob);
-          setUrl(objectUrl);
-        }, "image/png");
-      });
+      Promise.all([
+        document.fonts.load(`700 58px ${GOTHIC}`, sample),
+        document.fonts.load(`900 50px ${GOTHIC}`, sample),
+        document.fonts.load(`500 28px ${GOTHIC}`, sample),
+      ]).catch(() => undefined),
+      plot.cover ? loadImage(plot.cover) : Promise.resolve(null),
+    ]).then(([, cover]) => {
+      if (!alive) return;
+      draw(canvas, plot, quote, cover);
+      canvas.toBlob((blob) => {
+        if (!blob || !alive) return;
+        objectUrl = URL.createObjectURL(blob);
+        setUrl(objectUrl);
+      }, "image/png");
+    });
     return () => {
       alive = false;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
@@ -204,22 +212,27 @@ export function SceneCard({
         className="arrive w-full max-w-md rounded-t-[1.6rem] bg-night-2 px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 sm:rounded-[1.6rem]"
         onClick={(e) => e.stopPropagation()}
       >
-        <span aria-hidden className="mx-auto mb-3 block h-1 w-10 rounded-full bg-line" />
-        <canvas ref={canvasRef} className="aspect-[4/5] w-full rounded-md shadow-[0_14px_30px_-14px_rgba(0,0,0,0.8)]" aria-label={quote} />
+        <span aria-hidden className="mx-auto mb-3 block h-1 w-10 rounded-full bg-night-3" />
+        <canvas
+          ref={canvasRef}
+          data-ready={url ? "" : undefined}
+          className="aspect-[4/5] w-full rounded-2xl bg-night-3 shadow-[0_14px_30px_-14px_rgba(0,0,0,0.8)]"
+          aria-label={quote}
+        />
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <button onClick={share} className="press rounded-full bg-tint py-3.5 text-sm font-bold text-night">
+          <button onClick={share} className="press btn-brand rounded-full py-3.5 text-sm">
             共有する
           </button>
           <a
             href={url ?? undefined}
             download={`yota-${plot.id}.png`}
             onClick={() => track("card_download", { plotId: plot.id })}
-            className="press rounded-full border border-line py-3.5 text-center text-sm font-medium text-paper"
+            className="press rounded-full bg-night-3 py-3.5 text-center text-sm font-bold text-paper"
           >
             画像を保存
           </a>
         </div>
-        <button onClick={onClose} className="press mt-2 w-full py-2.5 text-sm text-mist">
+        <button onClick={onClose} className="press mt-2 w-full py-2.5 text-sm font-bold text-mist">
           閉じる
         </button>
       </div>

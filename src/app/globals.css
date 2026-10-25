@@ -1,20 +1,20 @@
 @import "tailwindcss";
 
 /*
-  yota の配色：夜の文庫棚。
-  地は藍色、文字は藤白。色を持つのはキャラクターだけ（推し色）。
-  作品の画面では --tint に主役の推し色、--tint-2 に相手の推し色が入る。
+  yota の配色：夜のアプリ。
+  地は黒に近いグレー、文字は白。操作の主役はブランドのグラデーション（ピンク→紫）。
+  推し色（キャラごとの色）は、名前とアイコンの縁にだけ使う。
 */
 :root {
-  --night: #1d1838;
-  --night-2: #27214a;
-  --night-3: #342c60;
-  --line: #463d78;
-  --paper: #f7f3ff;
-  --mist: #c0b7e0;
-  --amber: #f6c27a;
-  --tint: #c9b6ff;
-  --tint-2: var(--tint);
+  --night: #0f0f13;
+  --night-2: #1b1b21;
+  --night-3: #26262e;
+  --line: #2f2f39;
+  --paper: #f5f5f7;
+  --mist: #a3a3ae;
+  --amber: #ffc46b;
+  --brand: #c254f0;
+  --brand-grad: linear-gradient(100deg, #ff4f9a, #c254f0 55%, #8a5cff);
 }
 
 @theme inline {
@@ -25,10 +25,10 @@
   --color-paper: var(--paper);
   --color-mist: var(--mist);
   --color-amber: var(--amber);
-  --color-tint: var(--tint);
-  --color-tint-2: var(--tint-2);
-  --font-sans: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
-  --font-mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --color-brand: var(--brand);
+  --font-sans: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  /* 明朝はやめて、すべてゴシックにする */
+  --font-mincho: var(--font-sans);
 }
 
 html {
@@ -46,22 +46,47 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--tint);
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--tint) 45%, var(--night));
+  background: color-mix(in oklab, var(--brand) 45%, var(--night));
 }
 
-/* 縦書きのタイトル（文庫の表紙） */
-.tategaki {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  font-feature-settings: "vpal" 1;
+/* ブランドのグラデーションの地 */
+@utility bg-brand-grad {
+  background-image: var(--brand-grad);
 }
 
-/* 横にすべらせる候補の列。スクロールバーは出さない */
+/* 主役のボタン：グラデーションの地に白の太字、ピンクの影 */
+@utility btn-brand {
+  background-image: var(--brand-grad);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 8px 22px -8px rgb(255 79 154 / 0.6);
+  &:disabled {
+    background-image: none;
+    background-color: var(--night-3);
+    color: var(--mist);
+    box-shadow: none;
+  }
+}
+
+/* グラデーションの文字 */
+@utility text-brand-grad {
+  background-image: var(--brand-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 日本語を文節で折り返す（「上司になっ／た」のような切れ方を避ける） */
+@utility break-phrase {
+  word-break: auto-phrase;
+}
+
+/* 横にすべらせる列。スクロールバーは出さない */
 .rail {
   scrollbar-width: none;
 }

@@ -9,17 +9,17 @@ export type Persona = {
   profile: string; // 外見・職業・背景
   personality: string;
   speech: string; // 口調の指定と例
-  /** 推し色。アイコン・吹き出し・表紙に使う */
+  /** 推し色。名前とアイコンの縁にだけ使う */
   color: string;
-  /** アイコンに入れる一文字 */
+  /** アイコンに入れる一文字（顔の絵がないとき） */
   mark: string;
+  /** 顔の絵（正方形）。あれば一文字のアイコンの代わりに使う */
+  face?: string;
 };
 
 export type Plot = {
   id: string;
   title: string;
-  /** 表紙の縦書きタイトルの改行位置 */
-  coverLines: string[];
   catchphrase: string;
   tags: string[];
   /** この作品で選べる視点。先頭が既定。 */
@@ -35,13 +35,18 @@ export type Plot = {
   hooks: string[];
   /** カードや一覧の配色（CSSのhue） */
   hue: number;
+  /** 表紙の絵（縦長）。一覧・注目作・年齢確認・名場面カードに使う */
+  cover?: string;
+  /** 会話画面の背景の絵（縦長） */
+  backdrop?: string;
 };
 
 export const PLOTS: Plot[] = [
   {
     id: "midnight-barista",
+    cover: "/art/midnight-barista-cover.webp",
+    backdrop: "/art/midnight-barista-bg.webp",
     title: "午前2時のバリスタ",
-    coverLines: ["午前2時の", "バリスタ"],
     catchphrase: "閉店後のカフェで、あなたにだけ出す一杯がある",
     tags: ["溺愛", "年上", "無口", "現代"],
     viewpoints: ["self"],
@@ -50,6 +55,7 @@ export const PLOTS: Plot[] = [
         name: "灰原 湊斗",
         color: "#d9a066",
         mark: "湊",
+        face: "/art/face-minato.webp",
         age: 28,
         profile:
           "深夜営業のカフェ『ノクターン』の店長。黒髪、少し長めの前髪、エプロンの袖をまくっている。元はホテルのバーテンダー。",
@@ -78,8 +84,9 @@ export const PLOTS: Plot[] = [
   },
   {
     id: "ex-is-my-boss",
+    cover: "/art/ex-is-my-boss-cover.webp",
+    backdrop: "/art/ex-is-my-boss-bg.webp",
     title: "元カレが上司になった",
-    coverLines: ["元カレが", "上司になった"],
     catchphrase: "5年ぶりの再会は、転職初日の会議室だった",
     tags: ["再会", "執着", "オフィス", "ツンデレ"],
     viewpoints: ["self"],
@@ -88,6 +95,7 @@ export const PLOTS: Plot[] = [
         name: "一ノ瀬 蓮",
         color: "#7aa2ff",
         mark: "蓮",
+        face: "/art/face-ren.webp",
         age: 30,
         profile:
           "広告代理店のクリエイティブディレクター。整った顔立ちに細いフレームの眼鏡、いつも黒のジャケット。社内では有能で冷たいと評判。",
@@ -116,8 +124,9 @@ export const PLOTS: Plot[] = [
   },
   {
     id: "manzai-roommates",
+    cover: "/art/manzai-roommates-cover.webp",
+    backdrop: "/art/manzai-roommates-bg.webp",
     title: "売れない漫才コンビは同居中",
-    coverLines: ["売れない", "漫才コンビは", "同居中"],
     catchphrase: "ツッコミはいつも優しすぎる。ボケはそれに気づかない",
     tags: ["幼なじみ", "同居", "相棒", "現代"],
     viewpoints: ["watch", "self"],
@@ -126,6 +135,7 @@ export const PLOTS: Plot[] = [
         name: "犬飼 陽太",
         color: "#ff9f45",
         mark: "陽",
+        face: "/art/face-yota.webp",
         age: 27,
         profile: "漫才コンビ『ドッグイヤー』のボケ担当。明るい茶髪、いつもパーカー。コンビニの深夜バイトで生活している。",
         personality: "能天気で人懐っこいが、相方が自分のために我慢していることに気づくと本気で落ち込む。",
@@ -135,6 +145,7 @@ export const PLOTS: Plot[] = [
         name: "白石 透",
         color: "#7fd3e6",
         mark: "透",
+        face: "/art/face-toru.webp",
         age: 27,
         profile: "ツッコミ担当で、ネタも書いている。黒髪で無表情。昼は塾講師。陽太とは小学校からの幼なじみ。",
         personality: "冷静で毒舌。陽太の夢のためにこっそり就職の話を断り続けているが、本人には絶対に言わない。",
@@ -161,8 +172,9 @@ export const PLOTS: Plot[] = [
   },
   {
     id: "knight-and-mage",
+    cover: "/art/knight-and-mage-cover.webp",
+    backdrop: "/art/knight-and-mage-bg.webp",
     title: "騎士団長と宮廷魔術師",
-    coverLines: ["騎士団長と", "宮廷魔術師"],
     catchphrase: "十年来の宿敵は、この王宮でいちばん互いを知っている",
     tags: ["ファンタジー", "ライバル", "主従", "執着"],
     viewpoints: ["watch", "self"],
@@ -171,6 +183,7 @@ export const PLOTS: Plot[] = [
         name: "ライナルト・ヴァイス",
         color: "#e8c35a",
         mark: "ラ",
+        face: "/art/face-rein.webp",
         age: 32,
         profile: "王国騎士団の団長。銀髪を短く刈り、頬に古い傷がある。平民出身で、剣一本で今の地位に上り詰めた。",
         personality: "寡黙で実直。魔術を信用していないが、ノアの腕だけは誰より認めている。",
@@ -180,6 +193,7 @@ export const PLOTS: Plot[] = [
         name: "ノア・エルフェン",
         color: "#b893ff",
         mark: "ノ",
+        face: "/art/face-noah.webp",
         age: 29,
         profile: "最年少で宮廷魔術師長になった天才。長い黒髪をひとつに結び、いつも気だるげにローブを羽織っている。",
         personality: "皮肉屋で人をからかうのが好き。ライナルトにだけはからかいが度を越し、構ってほしい本心が透けている。",
@@ -214,12 +228,6 @@ export const VIEWPOINT_LABEL: Record<Viewpoint, string> = {
   self: "あなたが物語にいる",
   watch: "ふたりを見守る",
 };
-
-/** 作品の画面で使う推し色（CSS変数）。主役が --tint、相手が --tint-2。 */
-export function plotVars(plot: Plot): Record<string, string> {
-  const [a, b] = plot.personas;
-  return { "--tint": a.color, "--tint-2": (b ?? a).color };
-}
 
 /** 画面で呼ぶときの名前（灰原 湊斗 → 湊斗、ライナルト・ヴァイス → ライナルト） */
 export function callName(p: Persona): string {

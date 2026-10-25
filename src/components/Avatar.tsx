@@ -1,13 +1,27 @@
+import Image from "next/image";
 import type { Persona } from "@/lib/characters";
 
-/** キャラのアイコン。立ち絵の代わりに、推し色の丸に一文字。 */
+/** キャラのアイコン。顔の絵を丸く切り、推し色の縁をつける。絵がなければ推し色の丸に一文字。 */
 export function Avatar({ persona, size = 32, ring = false }: { persona: Persona; size?: number; ring?: boolean }) {
+  const outline = ring ? "ring-2 ring-night" : "";
+  if (persona.face) {
+    return (
+      <Image
+        src={persona.face}
+        alt=""
+        aria-hidden
+        width={size}
+        height={size}
+        draggable={false}
+        className={`block shrink-0 select-none rounded-full bg-night-3 object-cover ${outline}`}
+        style={{ width: size, height: size, border: `2px solid ${persona.color}` }}
+      />
+    );
+  }
   return (
     <span
       aria-hidden
-      className={`grid shrink-0 select-none place-items-center rounded-full font-mincho font-bold leading-none text-night ${
-        ring ? "ring-2 ring-night" : ""
-      }`}
+      className={`grid shrink-0 select-none place-items-center rounded-full font-bold leading-none text-night ${outline}`}
       style={{ width: size, height: size, background: persona.color, fontSize: Math.round(size * 0.48) }}
     >
       {persona.mark}

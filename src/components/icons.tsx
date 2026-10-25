@@ -57,3 +57,8 @@ export const RestartIcon = (p: P) => (
     <path d="M5.5 15a7.5 7.5 0 1 0 1.2-7.9L4 10" />
   </Svg>
 );
+export const ChevronDownIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M6 9l6 6 6-6" />
+  </Svg>
+);

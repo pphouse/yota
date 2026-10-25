@@ -48,14 +48,14 @@ MVPでは全員 `fast` を使います。`quality` は有料化のときに使�
 ```
 src/
   app/
-    page.tsx                 一覧（遊び方のタブ＋作品）
+    page.tsx                 ホーム（注目作のカード＋遊び方のタブ＋作品の一覧）
     chat/[plotId]/page.tsx   会話画面
     api/session              年齢確認（生まれた年月だけを保存）
     api/conversation         会話の取得・新規開始
     api/chat                 返答のストリーミング（NDJSON）
     api/messages/[id]        返答の手直し
     api/events               計測イベント
-  components/                ChatScreen, AgeGate, SceneCard, StoryText, PlotList
+  components/                ChatScreen, AgeGate, SceneCard, StoryMessage, Featured, PlotList, Avatar
   lib/
     characters.ts            公式キャラ・プロット（全員18歳以上の架空の人物）
     prompt.ts                システムプロンプト（視点、3往復で山場、安全の指示）
@@ -65,6 +65,8 @@ src/
     usage.ts                 未成年の利用時間
     llm/                     文章AIの差し替え層（Anthropic / OpenAI / Gemini / ダミー）
 ```
+
+キャラの絵は `public/art/` にある（Higgsfieldで生成）。表紙 `<plotId>-cover.webp`（900×1342）、会話画面の背景 `<plotId>-bg.webp`（幅720）、アイコン用の顔 `face-<名前>.webp`（192×192）。パスは `characters.ts` の `cover` / `backdrop` / `face` に書く。
 
 ### 1往復の流れ
 
