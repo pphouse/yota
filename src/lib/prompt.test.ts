@@ -19,11 +19,13 @@ describe("buildSystemPrompt", () => {
     expect(p).toContain("ユーザーに話しかけてはいけません");
   });
 
-  it("3往復までは山場の候補を入れ、それ以降は外す", () => {
-    const early = buildSystemPrompt({ plot: solo, viewpoint: "self", isMinor: false, summary: "", userTurns: 3 });
-    const late = buildSystemPrompt({ plot: solo, viewpoint: "self", isMinor: false, summary: "", userTurns: 4 });
-    expect(early).toContain(solo.hooks[0]);
-    expect(late).not.toContain(solo.hooks[0]);
+  it("山場の候補は2〜3往復目だけに入れ、1往復目とそれ以降は外す", () => {
+    const at = (userTurns: number) => buildSystemPrompt({ plot: solo, viewpoint: "self", isMinor: false, summary: "", userTurns });
+    expect(at(1)).not.toContain(solo.hooks[0]);
+    expect(at(1)).toContain("大きな出来事は起こさず");
+    expect(at(2)).toContain(solo.hooks[0]);
+    expect(at(3)).toContain(solo.hooks[0]);
+    expect(at(4)).not.toContain(solo.hooks[0]);
   });
 
   it("未成年には恋愛表現の制限を追加する", () => {
