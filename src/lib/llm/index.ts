@@ -27,7 +27,7 @@ export function createProvider(env: Env = process.env): LLMProvider {
     return new OpenAIProvider(
       required(env, "OPENAI_API_KEY"),
       { fast: required(env, "OPENAI_MODEL_FAST"), quality: env.OPENAI_MODEL_QUALITY ?? required(env, "OPENAI_MODEL_FAST") },
-      env.OPENAI_BASE_URL,
+      { baseUrl: env.OPENAI_BASE_URL, reasoningEffort: env.OPENAI_REASONING_EFFORT },
     );
   }
   if (pick("gemini")) {

@@ -32,16 +32,33 @@ npm run build
 | --- | --- | --- |
 | Anthropic | `ANTHROPIC_API_KEY` | fast: `claude-haiku-5-5` / quality: `claude-sonnet-5-5` |
 | OpenAI（互換API含む） | `OPENAI_API_KEY`, `OPENAI_MODEL_FAST` | なし（必ず指定） |
+| Cerebras（OpenAI互換） | 上の2つ＋`OPENAI_BASE_URL`, `OPENAI_REASONING_EFFORT` | 下を参照 |
 | Gemini | `GEMINI_API_KEY`, `GEMINI_MODEL_FAST` | なし（必ず指定） |
 
 MVPでは全員 `fast` を使います。`quality` は有料化のときに使う想定です。
-実際のAPIでの動作確認はまだしていません。キーを入れたら、まず1往復試してください。
+
+### 今使っている設定：Cerebras の gpt-oss-120b
+
+```bash
+LLM_PROVIDER=openai
+OPENAI_API_KEY=csk-...                       # Cerebras のキー
+OPENAI_BASE_URL=https://api.cerebras.ai/v1
+OPENAI_MODEL_FAST=gpt-oss-120b
+OPENAI_REASONING_EFFORT=low
+```
+
+- 実際に会話して確認済み（2026-10-25）。最初の文字が出るまで約0.3秒、1回の返答を書き終えるまで約0.4〜0.8秒。
+- gpt-oss は推論モデルで、推論の分も `max_completion_tokens`（700）の枠を使います。`low` なら推論は十数トークンで足りますが、`medium` だと数百トークンを使って返答が短くなり、枠を使い切って空の返答になることがありました。会話には `low` を使ってください。
+- 推論の途中経過（`delta.reasoning`）は画面に出さず、本文だけを流します。
+- `OPENAI_REASONING_EFFORT` は推論モデルにだけ設定します（推論しないモデルに送るとエラーになります）。
+
+Anthropic と Gemini の実際のAPIでの動作確認はまだしていません。
 
 ## 本番公開（Vercel）
 
 1. Vercel でこのリポジトリをインポートする。
 2. Vercel はファイルに書き込めないため、[Turso](https://turso.tech) などで libSQL のDBを作り、`DATABASE_URL` と `DATABASE_AUTH_TOKEN` を設定する。テーブルは初回アクセス時に自動で作られます。
-3. 文章AIのキーを設定する。
+3. 文章AIの設定（上の「今使っている設定」の5つ）を環境変数に入れる。
 
 ## 構成
 

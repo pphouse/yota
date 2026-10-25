@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createProvider, generateText } from "./index";
 import { readSSE } from "./sse";
 
@@ -49,5 +49,47 @@ describe("createProvider", () => {
     });
     expect(text).toContain("湊斗");
     expect(text).toContain("こんばんは");
+  });
+});
+
+describe("OpenAIProvider（互換API）", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  /** fetch を差し替え、送った中身を記録して、決まったSSEを返す */
+  function stubFetch(events: object[]) {
+    const calls: { url: string; body: Record<string, unknown> }[] = [];
+    vi.stubGlobal("fetch", async (url: string, init: RequestInit) => {
+      calls.push({ url, body: JSON.parse(String(init.body)) });
+      const sse = [...events.map((e) => `data: ${JSON.stringify(e)}\n\n`), "data: [DONE]\n\n"];
+      return new Response(streamOf(sse), { status: 200 });
+    });
+    return calls;
+  }
+
+  const env = {
+    LLM_PROVIDER: "openai",
+    OPENAI_API_KEY: "k",
+    OPENAI_BASE_URL: "https://api.cerebras.ai/v1",
+    OPENAI_MODEL_FAST: "gpt-oss-120b",
+  };
+  const req = { system: "s", messages: [{ role: "user" as const, content: "こんばんは" }], tier: "fast" as const };
+
+  it("推論（delta.reasoning）は流さず、本文だけを返す", async () => {
+    stubFetch([
+      { choices: [{ delta: { role: "assistant" } }] },
+      { choices: [{ delta: { reasoning: "ユーザーは疲れている。" } }] },
+      { choices: [{ delta: { content: "*顔を上げる* " } }] },
+      { choices: [{ delta: { content: "……座って" } }] },
+    ]);
+    expect(await generateText(createProvider(env), req)).toBe("*顔を上げる* ……座って");
+  });
+
+  it("OPENAI_REASONING_EFFORT を設定したときだけ reasoning_effort を送る", async () => {
+    const calls = stubFetch([{ choices: [{ delta: { content: "x" } }] }]);
+    await generateText(createProvider(env), req);
+    await generateText(createProvider({ ...env, OPENAI_REASONING_EFFORT: "low" }), req);
+    expect(calls[0].url).toBe("https://api.cerebras.ai/v1/chat/completions");
+    expect(calls[0].body).not.toHaveProperty("reasoning_effort");
+    expect(calls[1].body).toMatchObject({ model: "gpt-oss-120b", reasoning_effort: "low", stream: true });
   });
 });
