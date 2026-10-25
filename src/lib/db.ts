@@ -4,6 +4,7 @@ import path from "node:path";
 
 /**
  * 開発中はローカルのSQLiteファイル、本番は DATABASE_URL（Tursoなど libSQL 互換）を使う。
+ * Vercel の Marketplace で入れた Turso は TURSO_DATABASE_URL / TURSO_AUTH_TOKEN という名前で入るので、それも読む。
  */
 const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS sessions (
@@ -54,12 +55,12 @@ let ready: Promise<void> | undefined;
 
 function getClient(): Client {
   if (client) return client;
-  const url = process.env.DATABASE_URL ?? "file:data/yota.db";
+  const url = process.env.DATABASE_URL ?? process.env.TURSO_DATABASE_URL ?? "file:data/yota.db";
   if (url.startsWith("file:")) {
     const file = url.slice("file:".length);
     if (file !== ":memory:") mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
   }
-  client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN });
+  client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN ?? process.env.TURSO_AUTH_TOKEN });
   return client;
 }
 

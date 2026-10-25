@@ -57,7 +57,7 @@ Anthropic と Gemini の実際のAPIでの動作確認はまだしていませ�
 ## 本番公開（Vercel）
 
 1. Vercel でこのリポジトリをインポートする。
-2. Vercel はファイルに書き込めないため、[Turso](https://turso.tech) などで libSQL のDBを作り、`DATABASE_URL` と `DATABASE_AUTH_TOKEN` を設定する。テーブルは初回アクセス時に自動で作られます。
+2. Vercel はファイルに書き込めないため、[Turso](https://turso.tech) などで libSQL のDBを作り、`DATABASE_URL` と `DATABASE_AUTH_TOKEN` を設定する。Vercel の Marketplace から Turso を入れた場合は `TURSO_DATABASE_URL` と `TURSO_AUTH_TOKEN` が自動で入り、そのまま読みます。テーブルは初回アクセス時に自動で作られます。
 3. 文章AIの設定（上の「今使っている設定」の5つ）を環境変数に入れる。
 
 ## 構成
