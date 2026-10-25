@@ -2,6 +2,7 @@
 export type StoryPart = { kind: "narration" | "speech"; text: string };
 
 export function parseStory(text: string): StoryPart[] {
+  text = text.replaceAll("＊", "*");
   const parts: StoryPart[] = [];
   const re = /\*([^*]+)\*/g;
   let last = 0;
@@ -41,7 +42,8 @@ export type Beat =
   | { kind: "note"; text: string };
 
 // 情景の行（> または ＞ で始まる）
-const SCENE_LINE = /^\s*[>＞]\s?/;
+// 「*> 情景*」のように * の内側に書かれることもある
+const SCENE_LINE = /^\s*\*?\s*[>＞]\s?/;
 
 const QUOTE = /([^\s「」（）()*。、！？]{1,12})?「([^」]*)(」|$)/g;
 
@@ -105,7 +107,7 @@ export function toBeats(text: string, names: string[]): Beat[] {
     if (rest.length) beats.push(...beatsOf(rest.join("\n"), names));
     rest = [];
   };
-  for (const line of text.split("\n")) {
+  for (const line of text.replaceAll("＊", "*").split("\n")) {
     if (!SCENE_LINE.test(line)) {
       rest.push(line);
       continue;
@@ -127,7 +129,8 @@ function beatsOf(text: string, names: string[]): Beat[] {
     for (const piece of raw.split("\n")) {
       const t = piece.trim();
       if (!t) continue;
-      if (/^[（(]/.test(t)) beats.push({ kind: "note", text: t.replace(/^[（(]|[）)]$/g, "") });
+      if (SCENE_LINE.test(t)) beats.push({ kind: "scene", text: t.replace(SCENE_LINE, "") });
+      else if (/^[（(]/.test(t)) beats.push({ kind: "note", text: t.replace(/^[（(]|[）)]$/g, "") });
       // 地の文の前に名前だけが置かれたとき（静*皿の縁を…*）は、名前だけの行を出さない
       else if (!solo && speakerOf(t, names) !== undefined) continue;
       else if (solo) beats.push({ kind: "line", text: t, speaker: 0 });
@@ -140,7 +143,8 @@ function beatsOf(text: string, names: string[]): Beat[] {
   parts.forEach((part, pi) => {
     const isLast = pi === parts.length - 1;
     if (part.kind === "narration") {
-      beats.push({ kind: "narration", text: part.text });
+      if (SCENE_LINE.test(part.text)) beats.push({ kind: "scene", text: part.text.replace(SCENE_LINE, "") });
+      else beats.push({ kind: "narration", text: part.text });
       return;
     }
     let src = solo ? softenInlineQuotes(part.text, names) : part.text;

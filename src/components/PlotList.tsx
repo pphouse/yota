@@ -12,9 +12,9 @@ const TABS: { id: Viewpoint; label: string; hint: string }[] = [
   { id: "watch", label: "ふたりを見守る", hint: "あなたは登場せず、ふたりのやりとりを眺めます" },
 ];
 
-function PlotCard({ plot, viewpoint }: { plot: Plot; viewpoint: Viewpoint }) {
+export function PlotCard({ plot, viewpoint }: { plot: Plot; viewpoint?: Viewpoint }) {
   return (
-    <Link href={`/chat/${plot.id}?v=${viewpoint}`} className="press block" aria-label={`${plot.title}　${plot.catchphrase}`}>
+    <Link href={viewpoint ? `/plot/${plot.id}?v=${viewpoint}` : `/plot/${plot.id}`} className="press block" aria-label={`${plot.title}　${plot.catchphrase}`}>
       <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-night-2">
         {plot.cover && (
           <Image src={plot.cover} alt="" fill sizes="(min-width: 576px) 270px, 46vw" className="object-cover object-top" />

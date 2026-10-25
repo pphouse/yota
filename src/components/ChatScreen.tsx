@@ -354,7 +354,11 @@ export function ChatScreen() {
           </Link>
           <AvatarStack personas={plot.personas} size={36} />
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[1rem] font-bold leading-tight">{plot.title}</h1>
+            <h1 className="truncate text-[1rem] font-bold leading-tight">
+              <Link href={`/plot/${plot.id}`} className="hover:underline">
+                {plot.title}
+              </Link>
+            </h1>
             <p className="mt-0.5 truncate text-[0.72rem] text-mist">{plot.personas.map((p) => p.name).join(" × ")}</p>
           </div>
           <button
@@ -399,7 +403,7 @@ export function ChatScreen() {
           {phase === "ready" && (
             // プロローグ：作品の舞台を、物語の入口としてナレーションで見せる
             <div className="mb-6">
-              <SceneNarration text={viewpoint === "self" ? nameInProse(plot.setting, userName) : plot.setting} />
+              <SceneNarration text={viewpoint === "self" ? nameInProse(plot.prologue ?? plot.setting, userName) : (plot.prologue ?? plot.setting)} />
             </div>
           )}
           <ol className="space-y-6">

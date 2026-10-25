@@ -11,7 +11,7 @@ export function Featured({ plots }: { plots: Plot[] }) {
         {plots.map((plot, i) => (
           <li key={plot.id} className="w-[84%] shrink-0 snap-start">
             <Link
-              href={`/chat/${plot.id}`}
+              href={`/plot/${plot.id}`}
               data-featured
               className="press relative block aspect-[4/5] overflow-hidden rounded-3xl bg-night-2"
             >

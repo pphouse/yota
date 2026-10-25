@@ -1,4 +1,4 @@
-import { callName, type Plot, type Viewpoint } from "./characters";
+import { callName, pronouns, type Plot, type Viewpoint } from "./characters";
 import type { ChatMessage } from "./llm";
 
 export type PromptContext = {
@@ -29,7 +29,12 @@ export function buildSystemPrompt(ctx: PromptContext): string {
         `  人物：${p.profile}`,
         `  性格：${p.personality}`,
         `  口調：${p.speech}`,
+        ...(p.likes?.length || p.dislikes?.length
+          ? [`  好き：${(p.likes ?? []).join("、") || "なし"}／嫌い：${(p.dislikes ?? []).join("、") || "なし"}`]
+          : []),
+        ...(p.habits?.length ? [`  口癖：${p.habits.map((h) => `「${h}」`).join("")}（ときどき出る。毎回は使わない）`] : []),
         ...(p.topics?.length ? [`  話の引き出し：${p.topics.join("／")}`] : []),
+        ...(p.inLove ? [`  好きになったら：${p.inLove}（関係がはっきり深まってから、少しずつ見せる。最初から出さない）`] : []),
       ].join("\n"),
     )
     .join("\n");
@@ -168,8 +173,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
 
   // 一人称と相手の呼び方は、見せ場ほど崩れやすい。口調の指定から抜き出し、最後にもう一度並べる
   const addressing = plot.personas.flatMap((p, i) => {
-    const first = p.speech.match(/一人称は(?:必ず)?([^\s、。（で]+)/)?.[1];
-    const you = p.speech.match(/相手を「([^」]+)」と呼ぶ/)?.[1];
+    const { first, you } = pronouns(p);
     if (!first) return [];
     const register = p.register === "polite" ? "、です・ます で話す（崩さない）" : p.register === "plain" ? "、です・ます は使わない" : "";
     return [`- ${callNames[i]}：一人称は「${first}」${you ? `、相手は必ず「${you}」と呼ぶ（ほかの呼び方はしない）` : ""}${register}`];

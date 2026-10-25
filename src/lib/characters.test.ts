@@ -44,6 +44,23 @@ describe("公式の作品とキャラクター", () => {
     }
   });
 
+  it("紹介ページ用の紹介文・プロローグ・あなたの役と、登場人物のプロフィールがそろっている", () => {
+    for (const plot of PLOTS) {
+      expect(plot.intro, plot.id).toBeTruthy();
+      expect(plot.prologue, plot.id).toBeTruthy();
+      if (plot.viewpoints.includes("self")) expect(plot.role, plot.id).toBeTruthy();
+      // 見守りでも出すプロローグには、物語にいない「あなた」を書かない
+      if (plot.viewpoints.includes("watch")) expect(plot.prologue, plot.id).not.toContain("あなた");
+      for (const p of plot.personas) {
+        expect(p.height, p.name).toBeGreaterThan(140);
+        expect(p.likes?.length, p.name).toBeGreaterThan(0);
+        expect(p.dislikes?.length, p.name).toBeGreaterThan(0);
+        expect(p.habits?.length, p.name).toBeGreaterThan(0);
+        expect(p.inLove, p.name).toBeTruthy();
+      }
+    }
+  });
+
   it("同じ作品の中で、呼び名が重ならない", () => {
     for (const plot of PLOTS) {
       const calls = plot.personas.map(callName);

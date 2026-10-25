@@ -1,5 +1,6 @@
 import { Featured } from "@/components/Featured";
 import { PlotList } from "@/components/PlotList";
+import { Shelf } from "@/components/Shelf";
 import { UserName } from "@/components/UserName";
 import { PLOTS } from "@/lib/characters";
 
@@ -17,6 +18,7 @@ export default function Home() {
         <p className="mt-1.5 text-[0.85rem] text-mist">話しかければ、すぐに続きが返ってきます。</p>
       </div>
       <Featured plots={PLOTS.filter((p) => p.featured)} />
+      <Shelf title="キャンパスの物語" hint="講義室、学園祭、寮の夜。大学が舞台の物語です" plots={PLOTS.filter((p) => p.tags.includes("大学"))} />
       <PlotList plots={PLOTS} />
       <footer className="mt-14 px-5 text-xs leading-6 text-mist/80">
         登場人物はすべて架空の18歳以上の人物です。返答はAIが生成しています。
