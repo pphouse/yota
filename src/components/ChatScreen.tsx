@@ -8,6 +8,7 @@ import { SceneCard } from "@/components/SceneCard";
 import { StoryText } from "@/components/StoryText";
 import { getPlot, VIEWPOINT_LABEL, type Viewpoint } from "@/lib/characters";
 import { api, readEvents } from "@/lib/client";
+import { parseStory } from "@/lib/story";
 
 type UIMessage = {
   key: string;
@@ -287,7 +288,17 @@ export function ChatScreen() {
               <li key={m.key}>
                 {m.role === "user" ? (
                   <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm border border-line bg-night-2 px-4 py-2.5 text-[0.95rem] leading-7">
-                    {m.content}
+                    {parseStory(m.content).map((p, i) =>
+                      p.kind === "narration" ? (
+                        <span key={i} className="block text-[0.85rem] text-mist">
+                          {p.text}
+                        </span>
+                      ) : (
+                        <span key={i} className="block">
+                          {p.text}
+                        </span>
+                      ),
+                    )}
                   </div>
                 ) : (
                   <article className="border-l-2 border-tint/60 pl-4">

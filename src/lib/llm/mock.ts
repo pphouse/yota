@@ -28,28 +28,44 @@ function shortName(full: string): string {
   return parts.length > 1 ? parts[parts.length - 1] : full;
 }
 
+/** 書き直しで毎回ちがう返答になるよう、候補から選ぶ */
+const pick = <T,>(xs: readonly T[]): T => xs[Math.floor(Math.random() * xs.length)];
+
+/** 相手の言葉を台詞の中で繰り返せる形にする（行動・括弧を除き、区切りのよいところで切る） */
+function echoOf(text: string): string {
+  const plain = text
+    .replace(/\*[^*]*\*/g, "")
+    .replace(/[「」『』]/g, "")
+    .trim();
+  const first = plain.split(/[。！？!?\n]/)[0] ?? "";
+  if (first.length <= 20) return first;
+  const cut = first.slice(0, 20);
+  const comma = cut.lastIndexOf("、");
+  return comma >= 6 ? cut.slice(0, comma) : cut;
+}
+
 function reply(req: GenerateRequest): string {
   const cast = names(req.system).map(shortName);
   const last = [...req.messages].reverse().find((m) => m.role === "user")?.content ?? "";
-  const echo = last.replace(/\*[^*]*\*/g, "").trim().slice(0, 24);
-  const turn = req.messages.filter((m) => m.role === "user").length;
+  const echo = echoOf(last);
   const watching = req.system.includes("【視点：見守り】");
 
   if (watching && cast.length >= 2) {
     const [a, b] = cast;
     return [
-      `*${a}がふと顔を上げ、${b}の横顔を見つめる*`,
-      `${a}「${echo ? `……${echo}、か。` : "……なあ。"}お前、昔からそういうとこあるよな」`,
-      `${b}「*目を逸らして* うるさい。……でも、${turn % 2 ? "嫌いじゃない" : "覚えてたんだな"}」`,
-      `*二人のあいだに、少しだけ長い沈黙が落ちた*`,
+      pick([`*${a}がふと顔を上げ、${b}の横顔を見つめる*`, `*${a}の手が止まる。${b}は気づかないふりをした*`]),
+      `${a}「${echo ? `……${echo}、か。` : "……なあ。"}${pick(["お前、昔からそういうとこあるよな", "なんで言わなかったんだよ"])}」`,
+      `*${b}は目を逸らす*`,
+      `${b}「${pick(["うるさい。……でも、嫌いじゃない", "……覚えてたんだな", "言ったら、お前は止めただろ"])}」`,
+      pick(["*二人のあいだに、少しだけ長い沈黙が落ちた*", "*窓の外で、始発の音がした*"]),
     ].join("\n");
   }
   const who = cast[0] ?? "彼";
   return [
-    `*${who}は少しだけ目を細めて、あなたの言葉を聞いていた*`,
+    pick([`*${who}は少しだけ目を細めて、あなたの言葉を聞いていた*`, `*${who}は手を止め、カウンター越しにあなたを見る*`]),
     echo ? `「${echo}……そうか」` : "「……そうか」",
-    `*小さく息を吐いて、${turn % 2 ? "視線をそらす" : "あなたとの距離を一歩詰める"}*`,
-    `「${turn % 3 === 0 ? "……雨、止まないな。もう少しここにいろ" : "次は、もう少しちゃんと話を聞かせて"}」`,
+    pick(["*小さく息を吐いて、視線をそらす*", "*あなたとの距離を、一歩だけ詰める*", "*湯気の向こうで、少しだけ笑った*"]),
+    `「${pick(["……雨、止まないな。もう少しここにいろ", "次は、もう少しちゃんと話を聞かせて", "無理して笑わなくていい。ここでは"])}」`,
     "",
     "（ダミー応答です。APIキーを設定すると本物のAIが返答します）",
   ].join("\n");
