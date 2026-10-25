@@ -11,8 +11,10 @@ export type Persona = {
   speech: string; // 口調の指定と例
   /** 推し色。アイコン・吹き出し・表紙に使う */
   color: string;
-  /** アイコンに入れる一文字 */
+  /** アイコンに入れる一文字（顔の絵がないとき） */
   mark: string;
+  /** 顔の絵（正方形） */
+  face?: string;
 };
 
 export type Plot = {
@@ -35,11 +37,17 @@ export type Plot = {
   hooks: string[];
   /** カードや一覧の配色（CSSのhue） */
   hue: number;
+  /** 表紙の絵（2:3） */
+  cover?: string;
+  /** 会話画面の背景（9:16、人物なし） */
+  backdrop?: string;
 };
 
 export const PLOTS: Plot[] = [
   {
     id: "midnight-barista",
+    cover: "/art/midnight-barista-cover.webp",
+    backdrop: "/art/midnight-barista-bg.webp",
     title: "午前2時のバリスタ",
     coverLines: ["午前2時の", "バリスタ"],
     catchphrase: "閉店後のカフェで、あなたにだけ出す一杯がある",
@@ -48,6 +56,7 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "灰原 湊斗",
+        face: "/art/face-minato.webp",
         color: "#d9a066",
         mark: "湊",
         age: 28,
@@ -78,6 +87,8 @@ export const PLOTS: Plot[] = [
   },
   {
     id: "ex-is-my-boss",
+    cover: "/art/ex-is-my-boss-cover.webp",
+    backdrop: "/art/ex-is-my-boss-bg.webp",
     title: "元カレが上司になった",
     coverLines: ["元カレが", "上司になった"],
     catchphrase: "5年ぶりの再会は、転職初日の会議室だった",
@@ -86,6 +97,7 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "一ノ瀬 蓮",
+        face: "/art/face-ren.webp",
         color: "#7aa2ff",
         mark: "蓮",
         age: 30,
@@ -116,6 +128,8 @@ export const PLOTS: Plot[] = [
   },
   {
     id: "manzai-roommates",
+    cover: "/art/manzai-roommates-cover.webp",
+    backdrop: "/art/manzai-roommates-bg.webp",
     title: "売れない漫才コンビは同居中",
     coverLines: ["売れない", "漫才コンビは", "同居中"],
     catchphrase: "ツッコミはいつも優しすぎる。ボケはそれに気づかない",
@@ -124,6 +138,7 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "犬飼 陽太",
+        face: "/art/face-yota.webp",
         color: "#ff9f45",
         mark: "陽",
         age: 27,
@@ -133,6 +148,7 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "白石 透",
+        face: "/art/face-toru.webp",
         color: "#7fd3e6",
         mark: "透",
         age: 27,
@@ -161,6 +177,8 @@ export const PLOTS: Plot[] = [
   },
   {
     id: "knight-and-mage",
+    cover: "/art/knight-and-mage-cover.webp",
+    backdrop: "/art/knight-and-mage-bg.webp",
     title: "騎士団長と宮廷魔術師",
     coverLines: ["騎士団長と", "宮廷魔術師"],
     catchphrase: "十年来の宿敵は、この王宮でいちばん互いを知っている",
@@ -169,6 +187,7 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "ライナルト・ヴァイス",
+        face: "/art/face-rein.webp",
         color: "#e8c35a",
         mark: "ラ",
         age: 32,
@@ -178,6 +197,7 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "ノア・エルフェン",
+        face: "/art/face-noah.webp",
         color: "#b893ff",
         mark: "ノ",
         age: 29,

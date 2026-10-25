@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -241,18 +242,26 @@ export function ChatScreen() {
   const watch = viewpoint === "watch";
   const starters = messages.length === 1 && !busy ? plot.starterReplies[viewpoint] ?? [] : [];
   const pill =
-    "press inline-flex min-h-9 items-center gap-1.5 rounded-full border border-line bg-night-2 px-3 text-[0.8rem] text-paper disabled:opacity-40";
+    "press inline-flex h-9 items-center gap-1.5 rounded-full bg-night-3/90 px-3.5 text-[0.8rem] font-bold text-paper backdrop-blur disabled:opacity-40";
 
   return (
-    <div style={plotVars(plot) as React.CSSProperties} className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-10 bg-night/92 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+    <div style={plotVars(plot) as React.CSSProperties} className="relative isolate flex min-h-dvh flex-col">
+      {plot.backdrop && (
+        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10">
+          <Image src={plot.backdrop} alt="" fill priority sizes="(max-width: 640px) 100vw, 640px" className="object-cover" />
+          {/* 文字が読めるよう、背景は夜の色で沈める */}
+          <div className="absolute inset-0 bg-night/70" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(15,15,19,0.6),rgba(15,15,19,0.05)_35%,rgba(15,15,19,0.9))]" />
+        </div>
+      )}
+      <header className="sticky top-0 z-10 bg-night/70 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-xl items-center gap-3 px-3 py-2.5">
           <Link href="/" aria-label="物語の一覧へ" className="press grid size-9 place-items-center rounded-full text-mist hover:text-paper">
             <BackIcon size={22} />
           </Link>
           <AvatarStack personas={plot.personas} size={36} />
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-mincho text-[1.02rem] font-bold leading-tight">{plot.title}</h1>
+            <h1 className="truncate text-[1rem] font-black leading-tight">{plot.title}</h1>
             <p className="mt-0.5 truncate text-[0.72rem] text-mist">{plot.personas.map((p) => p.name).join(" × ")}</p>
           </div>
           <button
@@ -278,7 +287,7 @@ export function ChatScreen() {
                     router.replace(`/chat/${plot.id}?v=${v}`);
                   }}
                   aria-pressed={v === viewpoint}
-                  className={`press rounded-full py-1.5 text-xs font-medium ${v === viewpoint ? "bg-paper text-night" : "text-mist"}`}
+                  className={`press rounded-full py-1.5 text-xs font-bold ${v === viewpoint ? "btn-brand" : "text-mist"}`}
                 >
                   {VIEWPOINT_LABEL[v]}
                 </button>
@@ -306,10 +315,10 @@ export function ChatScreen() {
                       onChange={(e) => setEditing({ key: m.key, text: e.target.value })}
                       rows={8}
                       aria-label="返答を直す"
-                      className="w-full rounded-2xl border border-tint/50 bg-night-2 p-4 font-mincho text-[0.98rem] leading-8 focus:outline-none"
+                      className="w-full rounded-2xl bg-night-2 p-4 text-[0.98rem] leading-8 ring-1 ring-brand/50 focus:outline-none"
                     />
                     <div className="mt-2 flex gap-2">
-                      <button onClick={saveEdit} className="press rounded-full bg-tint px-5 py-2 text-sm font-bold text-night">
+                      <button onClick={saveEdit} className="btn-brand press rounded-full px-5 py-2 text-sm">
                         保存する
                       </button>
                       <button onClick={() => setEditing(null)} className="press px-3 text-sm text-mist">
@@ -337,7 +346,7 @@ export function ChatScreen() {
                         {!m.flagged && m === last && (
                           <button
                             onClick={() => setCard(m.content)}
-                            className="press inline-flex min-h-9 items-center gap-1.5 rounded-full bg-tint px-3 text-[0.8rem] font-bold text-night"
+                            className="btn-brand press inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[0.8rem]"
                           >
                             <CardIcon size={15} />
                             カードにする
@@ -360,7 +369,7 @@ export function ChatScreen() {
       )}
 
       {phase === "ready" && (
-        <footer className="sticky bottom-0 bg-night/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+        <footer className="sticky bottom-0 bg-night/80 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
           <div className="h-px bg-line/70" />
           <div className="mx-auto max-w-xl pt-2.5">
             {notice && (
@@ -380,8 +389,7 @@ export function ChatScreen() {
                     key={s}
                     data-starter
                     onClick={() => send(s)}
-                    className="press shrink-0 rounded-full border px-4 py-2 text-[0.85rem] text-paper"
-                    style={{ borderColor: "color-mix(in oklab, var(--tint) 55%, transparent)", background: "color-mix(in oklab, var(--tint) 10%, var(--night))" }}
+                    className="press shrink-0 rounded-full bg-night-3 px-4 py-2.5 text-[0.85rem] font-bold text-paper ring-1 ring-brand/35"
                   >
                     {s.replace(/\*/g, "")}
                   </button>
@@ -400,7 +408,7 @@ export function ChatScreen() {
                   type="button"
                   onClick={insertAction}
                   title="*で囲むと行動や情景になります"
-                  className="press h-11 shrink-0 rounded-full bg-night-2 px-3.5 text-xs font-medium text-mist hover:text-paper"
+                  className="press h-11 shrink-0 rounded-full bg-night-3 px-3.5 text-xs font-bold text-mist hover:text-paper"
                 >
                   ＊行動
                 </button>
@@ -413,13 +421,13 @@ export function ChatScreen() {
                   maxLength={2000}
                   placeholder={watch ? "見たい展開を書く" : `${plot.personas.length === 1 ? "話しかける" : "ふたりに話しかける"}`}
                   aria-label="メッセージ"
-                  className="max-h-40 min-h-11 flex-1 resize-none rounded-[1.4rem] border border-line bg-night-2 px-4 py-2.5 text-base leading-6 placeholder:text-mist/70 focus:border-tint focus:outline-none"
+                  className="max-h-40 min-h-11 flex-1 resize-none rounded-[1.4rem] bg-night-3 px-4 py-2.5 text-base leading-6 placeholder:text-mist/70 focus:outline-none focus:ring-2 focus:ring-brand/60"
                 />
                 <button
                   type="submit"
                   aria-label="送る"
                   disabled={busy || !input.trim()}
-                  className="press grid size-11 shrink-0 place-items-center rounded-full bg-tint text-night disabled:bg-night-3 disabled:text-mist"
+                  className="btn-brand press grid size-11 shrink-0 place-items-center rounded-full"
                 >
                   <SendIcon size={20} />
                 </button>

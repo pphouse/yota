@@ -7,9 +7,9 @@ import { pickQuote } from "@/lib/story";
 
 const W = 1080;
 const H = 1350;
-const MINCHO = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
-const GOTHIC = '"Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", sans-serif';
-const NIGHT = "#1d1838";
+const MINCHO = '"Noto Sans JP", "Hiragino Sans", sans-serif';
+const GOTHIC = MINCHO;
+const NIGHT = "#0f0f13";
 // 行頭に来てはいけない文字（簡易の禁則処理）
 const NO_START = "、。，．」』）！？ー…・～っゃゅょァィゥェォッャュョ";
 
@@ -41,7 +41,7 @@ function mix(a: string, b: string, pct: number): string {
   return `rgb(${x.map((v, i) => Math.round(v * pct + y[i] * (1 - pct))).join(",")})`;
 }
 
-function draw(canvas: HTMLCanvasElement, plot: Plot, quote: string) {
+function draw(canvas: HTMLCanvasElement, plot: Plot, quote: string, art?: HTMLImageElement) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   canvas.width = W;
@@ -74,8 +74,22 @@ function draw(canvas: HTMLCanvasElement, plot: Plot, quote: string) {
   ctx.fillStyle = "rgba(255,255,255,0.15)";
   ctx.fillRect(22, 0, 3, H);
 
-  // アイコン
-  plot.personas.forEach((p, i) => {
+  // 表紙の絵があれば、上に敷いて下へ向かって沈める
+  if (art) {
+    const scale = Math.max(W / art.width, obiTop / art.height);
+    const w = art.width * scale;
+    const h = art.height * scale;
+    ctx.drawImage(art, (W - w) / 2, 0, w, h);
+    const g = ctx.createLinearGradient(0, 0, 0, obiTop);
+    g.addColorStop(0, "rgba(29,24,56,0.05)");
+    g.addColorStop(0.38, "rgba(29,24,56,0.2)");
+    g.addColorStop(1, "rgba(29,24,56,0.94)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, obiTop);
+  }
+
+  // アイコン（絵がないとき）
+  if (!art) plot.personas.forEach((p, i) => {
     const cx = 120 + i * 62;
     ctx.beginPath();
     ctx.arc(cx, 130, 44, 0, Math.PI * 2);
@@ -101,27 +115,44 @@ function draw(canvas: HTMLCanvasElement, plot: Plot, quote: string) {
   const lineH = 64 * 1.7;
   const areaTop = 250;
   const areaH = obiTop - areaTop - 40;
-  const top = areaTop + (areaH - lines.length * lineH) / 2 + 64;
+  // 絵があるときは顔にかからないよう、下に寄せる
+  const top = art ? obiTop - 70 - (lines.length - 1) * lineH : areaTop + (areaH - lines.length * lineH) / 2 + 64;
   ctx.shadowColor = "rgba(0,0,0,0.35)";
   ctx.shadowBlur = 18;
   lines.forEach((l, i) => ctx.fillText(l, 120, top + i * lineH));
   ctx.shadowBlur = 0;
 
-  // 帯
-  ctx.fillStyle = mix(a.color, "#fbf8ff", 0.16);
+  // 下の帯：アプリと同じダークに、ブランドのグラデーションの線
+  ctx.fillStyle = NIGHT;
   ctx.fillRect(0, obiTop, W, H - obiTop);
-  ctx.fillStyle = NIGHT;
-  ctx.font = `700 50px ${MINCHO}`;
-  ctx.fillText(`『${plot.title}』`, 96, obiTop + 104);
-  ctx.fillStyle = "rgba(29,24,56,0.6)";
+  const brand = ctx.createLinearGradient(0, 0, W, 0);
+  brand.addColorStop(0, "#ff4f9a");
+  brand.addColorStop(0.55, "#c254f0");
+  brand.addColorStop(1, "#8a5cff");
+  ctx.fillStyle = brand;
+  ctx.fillRect(0, obiTop, W, 8);
+  ctx.fillStyle = "#f5f5f7";
+  ctx.font = `900 52px ${MINCHO}`;
+  ctx.fillText(plot.title, 96, obiTop + 110);
+  ctx.fillStyle = a.color;
+  ctx.font = `700 30px ${GOTHIC}`;
+  ctx.fillText(plot.personas.map((p) => p.name).join(" × "), 96, obiTop + 166);
+  ctx.fillStyle = "#a3a3ae";
   ctx.font = `500 30px ${GOTHIC}`;
-  ctx.fillText(plot.personas.map((p) => p.name).join(" × "), 120, obiTop + 160);
-  ctx.fillStyle = NIGHT;
-  ctx.font = `500 32px ${GOTHIC}`;
-  ctx.fillText("この続きは、あなたが書く。", 120, H - 76);
+  ctx.fillText("この続きは、あなたが書く。", 96, H - 72);
   ctx.textAlign = "right";
-  ctx.font = `700 52px ${MINCHO}`;
-  ctx.fillText("yota", W - 90, H - 72);
+  ctx.fillStyle = brand;
+  ctx.font = `900 60px ${MINCHO}`;
+  ctx.fillText("yota", W - 90, H - 68);
+}
+
+function loadImage(src: string): Promise<HTMLImageElement | undefined> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(undefined);
+    img.src = src;
+  });
 }
 
 export function SceneCard({
@@ -150,14 +181,17 @@ export function SceneCard({
     let alive = true;
     // 書体を読み込んでから描く（読み込み前だと代わりの書体で描かれてしまう）
     const sample = quote + plot.title + plot.personas.map((p) => p.name + p.mark).join("") + "この続きはあなたが書く。yota『』×";
+    const art = plot.cover ? loadImage(plot.cover) : Promise.resolve(undefined);
     void Promise.all([
       document.fonts.load(`700 64px ${MINCHO}`, sample),
       document.fonts.load(`500 30px ${GOTHIC}`, sample),
+      document.fonts.load(`900 52px ${MINCHO}`, sample),
     ])
       .catch(() => undefined)
-      .then(() => {
+      .then(() => art)
+      .then((img) => {
         if (!alive) return;
-        draw(canvas, plot, quote);
+        draw(canvas, plot, quote, img);
         canvas.toBlob((blob) => {
           if (!blob || !alive) return;
           objectUrl = URL.createObjectURL(blob);
@@ -207,14 +241,14 @@ export function SceneCard({
         <span aria-hidden className="mx-auto mb-3 block h-1 w-10 rounded-full bg-line" />
         <canvas ref={canvasRef} className="aspect-[4/5] w-full rounded-md shadow-[0_14px_30px_-14px_rgba(0,0,0,0.8)]" aria-label={quote} />
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <button onClick={share} className="press rounded-full bg-tint py-3.5 text-sm font-bold text-night">
+          <button onClick={share} className="btn-brand press rounded-2xl py-3.5 text-sm">
             共有する
           </button>
           <a
             href={url ?? undefined}
             download={`yota-${plot.id}.png`}
             onClick={() => track("card_download", { plotId: plot.id })}
-            className="press rounded-full border border-line py-3.5 text-center text-sm font-medium text-paper"
+            className="press rounded-2xl bg-night-3 py-3.5 text-center text-sm font-bold text-paper"
           >
             画像を保存
           </a>

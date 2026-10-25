@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { AvatarStack } from "@/components/Avatar";
 import { callName, type Plot } from "@/lib/characters";
@@ -30,13 +31,19 @@ export function AgeGate({ plot, onDone }: { plot: Plot; onDone: (isMinor: boolea
   }
 
   const select =
-    "w-full appearance-none rounded-2xl border border-line bg-night-2 px-4 py-3.5 text-base text-paper focus:border-tint focus:outline-none";
+    "w-full appearance-none rounded-2xl bg-night-3 px-4 py-3.5 text-base font-bold text-paper focus:outline-none focus:ring-2 focus:ring-brand/60";
 
   return (
-    <form onSubmit={submit} className="mx-auto w-full max-w-sm px-6 pb-10 pt-12">
-      <div className="flex flex-col items-center text-center">
-        <AvatarStack personas={plot.personas} size={60} />
-        <h2 className="mt-5 font-mincho text-[1.45rem] font-bold leading-snug">
+    <form onSubmit={submit} className="mx-auto w-full max-w-sm px-6 pb-10">
+      {plot.cover && (
+        <div className="relative -mx-6 h-[38vh] min-h-56 overflow-hidden">
+          <Image src={plot.cover} alt="" fill priority sizes="(max-width: 640px) 100vw, 400px" className="object-cover object-[50%_18%]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(15,15,19,0)_45%,var(--night))]" />
+        </div>
+      )}
+      <div className={`relative flex flex-col items-center text-center ${plot.cover ? "-mt-9" : "pt-12"}`}>
+        <AvatarStack personas={plot.personas} size={plot.cover ? 52 : 60} />
+        <h2 className="mt-4 text-[1.4rem] font-black leading-snug">
           {plot.personas.map(callName).join("と")}が待っています
         </h2>
         <p className="mt-3 text-[0.88rem] leading-7 text-mist">
@@ -79,7 +86,7 @@ export function AgeGate({ plot, onDone }: { plot: Plot; onDone: (isMinor: boolea
       <button
         type="submit"
         disabled={busy || !year || !month}
-        className="press mt-7 w-full rounded-full bg-tint py-4 text-[0.95rem] font-bold text-night disabled:bg-night-3 disabled:text-mist"
+        className="btn-brand press mt-7 w-full rounded-2xl py-4 text-base"
       >
         {busy ? "確認しています" : "物語をはじめる"}
       </button>

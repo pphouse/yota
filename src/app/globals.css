@@ -1,19 +1,21 @@
 @import "tailwindcss";
 
 /*
-  yota の配色：夜の文庫棚。
-  地は藍色、文字は藤白。色を持つのはキャラクターだけ（推し色）。
-  作品の画面では --tint に主役の推し色、--tint-2 に相手の推し色が入る。
+  yota の配色：アプリらしい無彩色のダークに、ブランドのピンク→紫のグラデーション。
+  キャラクターの推し色（--tint）は名前・アイコンの縁・小さな差し色にだけ使う。
 */
 :root {
-  --night: #1d1838;
-  --night-2: #27214a;
-  --night-3: #342c60;
-  --line: #463d78;
-  --paper: #f7f3ff;
-  --mist: #c0b7e0;
-  --amber: #f6c27a;
-  --tint: #c9b6ff;
+  --night: #0f0f13;
+  --night-2: #1b1b21;
+  --night-3: #26262e;
+  --line: #2f2f39;
+  --paper: #f5f5f7;
+  --mist: #a3a3ae;
+  --amber: #ffc46b;
+  --brand: #ff4f9a;
+  --brand-2: #9b5cff;
+  --brand-grad: linear-gradient(100deg, #ff4f9a 0%, #c254f0 55%, #8a5cff 100%);
+  --tint: #ff8fc0;
   --tint-2: var(--tint);
 }
 
@@ -25,10 +27,13 @@
   --color-paper: var(--paper);
   --color-mist: var(--mist);
   --color-amber: var(--amber);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
   --color-tint: var(--tint);
   --color-tint-2: var(--tint-2);
-  --font-sans: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
-  --font-mincho: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --font-sans: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  /* 物語の本文も読みやすさ優先でゴシックに揃える */
+  --font-mincho: var(--font-sans);
 }
 
 html {
@@ -43,25 +48,38 @@ body {
   color: var(--paper);
   font-feature-settings: "palt" 1;
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
 }
 
 :focus-visible {
-  outline: 2px solid var(--tint);
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--tint) 45%, var(--night));
+  background: color-mix(in oklab, var(--brand) 45%, var(--night));
 }
 
-/* 縦書きのタイトル（文庫の表紙） */
-.tategaki {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  font-feature-settings: "vpal" 1;
+/* ブランドのボタン：太く、高く、グラデーション */
+.btn-brand {
+  background: var(--brand-grad);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 8px 22px -10px rgba(255, 79, 154, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.btn-brand:disabled {
+  background: var(--night-3);
+  color: var(--mist);
+  box-shadow: none;
+}
+.text-brand-grad {
+  background: var(--brand-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
-/* 横にすべらせる候補の列。スクロールバーは出さない */
+/* 横にすべらせる列。スクロールバーは出さない */
 .rail {
   scrollbar-width: none;
 }
@@ -71,10 +89,11 @@ body {
 
 /* 押したときの手応え */
 .press {
-  transition: transform 0.12s ease-out, background-color 0.15s, opacity 0.15s;
+  transition: transform 0.12s ease-out, background-color 0.15s, opacity 0.15s, filter 0.15s;
 }
 .press:active {
   transform: scale(0.96);
+  filter: brightness(0.92);
 }
 
 @media (prefers-reduced-motion: reduce) {

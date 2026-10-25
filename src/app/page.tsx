@@ -3,14 +3,14 @@ import { PLOTS } from "@/lib/characters";
 
 export default function Home() {
   return (
-    <main className="mx-auto w-full max-w-xl px-5 pb-14 pt-[max(1.5rem,env(safe-area-inset-top))]">
-      <header className="mb-7">
-        <p className="font-mincho text-lg font-bold tracking-[0.12em]">yota</p>
-        <h1 className="mt-6 font-mincho text-[1.75rem] font-bold leading-[1.4]">今夜は、誰の物語を読む？</h1>
-        <p className="mt-2.5 text-[0.9rem] leading-7 text-mist">話しかければ、すぐに続きが返ってきます。</p>
+    <main className="mx-auto w-full max-w-xl px-4 pb-14">
+      <header className="sticky top-0 z-10 -mx-4 mb-4 flex items-center justify-between bg-night/85 px-4 pb-3 pt-[max(0.9rem,env(safe-area-inset-top))] backdrop-blur-xl">
+        <p className="text-brand-grad text-[1.6rem] font-black tracking-tight">yota</p>
+        <span className="rounded-full bg-night-2 px-3 py-1.5 text-[0.7rem] font-bold text-mist">広告なし</span>
       </header>
+      <h1 className="mb-4 text-[1.35rem] font-black leading-snug">今夜は、誰の物語を読む？</h1>
       <PlotList plots={PLOTS} />
-      <footer className="mt-14 text-xs leading-6 text-mist/80">
+      <footer className="mt-14 text-xs leading-6 text-mist/70">
         登場人物はすべて架空の18歳以上の人物です。返答はAIが生成しています。
       </footer>
     </main>
