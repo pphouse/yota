@@ -2,8 +2,8 @@ import { readSSE } from "./sse";
 import { LLMError, type GenerateRequest, type LLMProvider } from "./types";
 
 // 推論モデルは、考えた分も max_completion_tokens を使う。返答の長さとは別に、考える量に応じた余裕を足す
-// （足りないと、考えるだけで枠を使い切って本文が空になる）
-const REASONING_HEADROOM: Record<string, number> = { low: 400, medium: 1200, high: 4000 };
+// （足りないと、考えるだけで枠を使い切って本文が空になる。qwen は medium でも候補づくりに2000トークン以上考えることがある）
+const REASONING_HEADROOM: Record<string, number> = { low: 400, medium: 3000, high: 6000 };
 
 // OpenAI互換の Chat Completions（ストリーミング）。OPENAI_BASE_URL で互換API（Cerebras など）にも向けられる。
 export class OpenAIProvider implements LLMProvider {
@@ -30,7 +30,7 @@ export class OpenAIProvider implements LLMProvider {
       },
       body: JSON.stringify({
         model: this.models[req.tier],
-        max_completion_tokens: (req.maxTokens ?? 700) + (this.reasoningEffort ? (REASONING_HEADROOM[this.reasoningEffort] ?? 1200) : 0),
+        max_completion_tokens: (req.maxTokens ?? 700) + (this.reasoningEffort ? (REASONING_HEADROOM[this.reasoningEffort] ?? 3000) : 0),
         // 推論モデル（gpt-oss など）の考える量。推論しないモデルに送るとエラーになるため、設定したときだけ付ける
         ...(this.reasoningEffort ? { reasoning_effort: this.reasoningEffort } : {}),
         stream: true,
