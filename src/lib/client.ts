@@ -1,6 +1,6 @@
 import type { ChatEvent } from "./chat";
 
-type TrackType = "card_open" | "card_share" | "card_download" | "viewpoint_select" | "landing_view" | "suggestion_select";
+type TrackType = "card_open" | "card_share" | "card_download" | "viewpoint_select" | "genre_select" | "landing_view" | "suggestion_select";
 
 export function track(type: TrackType, props: Record<string, string | number | boolean | null> = {}) {
   void fetch("/api/events", {

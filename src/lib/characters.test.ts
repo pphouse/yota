@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { callName, PLOTS } from "./characters";
+import { callName, GENRES, PLOTS } from "./characters";
 import { toBeats } from "./story";
 
 const publicFile = (src: string) => path.join(import.meta.dirname, "../../public", src);
@@ -66,5 +66,10 @@ describe("公式の作品とキャラクター", () => {
       const calls = plot.personas.map(callName);
       expect(new Set(calls).size, plot.id).toBe(calls.length);
     }
+  });
+
+  it("どの作品も1つ以上のカテゴリに入り、どのカテゴリにも2本以上ある", () => {
+    for (const plot of PLOTS) expect(plot.genres.length, plot.id).toBeGreaterThan(0);
+    for (const g of GENRES) expect(PLOTS.filter((p) => p.genres.includes(g.id)).length, g.id).toBeGreaterThanOrEqual(2);
   });
 });

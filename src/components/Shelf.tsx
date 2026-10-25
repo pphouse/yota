@@ -10,7 +10,7 @@ export function Shelf({ title, hint, plots }: { title: string; hint?: string; pl
       {hint && <p className="mt-1 px-5 text-xs text-mist">{hint}</p>}
       <ul className="rail mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-5 px-5 pb-1">
         {plots.map((plot) => (
-          <li key={plot.id} className="w-[40%] shrink-0 snap-start sm:w-[30%]">
+          <li key={plot.id} className="w-[44%] shrink-0 snap-start">
             <PlotCard plot={plot} />
           </li>
         ))}
