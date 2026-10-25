@@ -1,4 +1,5 @@
-import type { Plot, Viewpoint } from "./characters";
+import { callName, type Plot, type Viewpoint } from "./characters";
+import { hasForeignText } from "./japanese";
 import { generateText, type LLMProvider } from "./llm";
 import { checkText, mentionsSexual, needsCare } from "./safety";
 import type { StoredMessage } from "./store";
@@ -12,21 +13,28 @@ const CONTEXT_MESSAGES = 8;
 /** 返事の候補を考える係へのシステムプロンプト。キャラを演じる返答とは別に、短く呼ぶ。 */
 export function buildSuggestPrompt(ctx: { plot: Plot; viewpoint: Viewpoint; isMinor: boolean; summary: string }): string {
   const { plot, viewpoint, isMinor, summary } = ctx;
-  const cast = plot.personas.map((p) => `- 名前：${p.name}（${p.age}歳）　${p.personality}`).join("\n");
+  const names = plot.personas.map(callName);
+  const cast = plot.personas.map((p, i) => `- ${names[i]}（${p.age}歳）　${p.personality}`).join("\n");
   const view =
     viewpoint === "self"
       ? [
           "【視点：当事者】",
-          "読者は物語の中にいる「あなた」です。候補は、あなたが次に言う台詞か、次にする行動です。",
+          "読者は物語の中にいる「あなた」です。候補は、あなたが登場人物に向けて次に言う言葉か、次にする行動です。登場人物の台詞を書いたり、言い換えたりしません。",
+          "- あなたの立場は【舞台】の「あなた」のとおりです。その立場で言えること・できることだけにします。",
+          "- 一人称は「私」か省略します。「俺」「僕」、相手を「お前」と呼ぶ言い方、命令形（〜しろ・〜しなさい）、乱暴な言い方（〜だろ・食う）、方言は使いません。",
+          "- 口調は、これまでの【あなた】の発言に合わせます（敬語なら敬語、短くくだけていれば短くくだけた言い方）。まだ発言がなければ、やわらかい話し言葉にします。",
           "- 3つの方向を変えてください：素直に応える／少し踏み込む・からかう／行動で返す。",
           "- 台詞は「」を付けずに書きます。行動は *アスタリスク* で囲みます（例：*黙ってうなずく*）。台詞と行動を1つの候補に混ぜません。",
+          "- 行動は、今いる場所と手元にある物でできることだけにします。直前に出た小道具を続けて使わず、視線・距離・声・沈黙など、毎回違う動きにします。",
+          "- 新しい名前やあだ名を作りません。",
         ]
       : [
           "【視点：見守り】",
           "読者は物語に登場せず、登場人物のやり取りを眺めています。候補は「次はこんな展開が見たい」という短い演出の指示です。",
-          "- 登場人物の名前を使い、次に起きてほしい出来事や、関係の変化を書いてください（例：透が本音をこぼす）。",
-          "- 台詞は書きません。どの候補も「（名前）が〜する」の形にします。",
-          "- 3つのうち1つは、静かに見守る選択肢にしても構いません。",
+          `- 台詞は書きません。どの候補も「（名前）が〜する」の形にします。名前は${names.map((n) => `「${n}」`).join("")}の表記だけを使います。`,
+          "- 3つの方向を変えてください：じれったさを保つ（言いかけてやめる・気づかないふり・すれ違い）／外の出来事や時間の経過で場面を動かす／関係を一歩だけ進める。1つは静かに見守る選択肢でも構いません。",
+          "- 直前の返答ですでに起きたことや、その場にない物・まだしていない姿勢を前提にしません。",
+          "- 抱きしめる・指を絡める・顔を寄せるなど、身体の距離を一気に縮める候補や、告白・キスにつながる候補は出しません。",
         ];
   return [
     `あなたは、対話しながら物語を読むアプリで、読者が次に送る返事の候補を考える係です。作品は『${plot.title}』。`,
@@ -42,24 +50,31 @@ export function buildSuggestPrompt(ctx: { plot: Plot; viewpoint: Viewpoint; isMi
     "【書き方】",
     `- 候補を${SUGGESTION_COUNT}つ、1行に1つずつ書きます。番号・記号・説明・前置きは付けません。`,
     "- それぞれ25字以内。直前の場面の流れに沿い、読者が押したくなる言葉にしてください。",
+    "- 平易な日本語だけで書きます。中国語の漢字や熟語、外国語、造語は使いません。",
     "- 登場人物は全員18歳以上の成人です。性的な内容や、暴力を肯定する内容は書きません。",
     ...(isMinor ? ["- 読者は18歳未満です。恋愛は心の動きと会話を中心にしてください。"] : []),
     ...(summary ? ["", "【これまでのあらすじ】", summary] : []),
   ].join("\n");
 }
 
-/** 直近の場面を、候補を考える係に渡す1つの文章にする */
-export function buildSuggestRequest(messages: StoredMessage[], viewpoint: Viewpoint): string {
+/**
+ * 直近の場面を、候補を考える係に渡す1つの文章にする。
+ * ひとりの作品の返答は台詞に名前が付かないので、speaker を渡すと【名前】を付けて誰の言葉か分かるようにする。
+ */
+export function buildSuggestRequest(messages: StoredMessage[], viewpoint: Viewpoint, speaker?: string): string {
   const you = viewpoint === "self" ? "あなた" : "読者の希望";
   const scene = messages
     .slice(-CONTEXT_MESSAGES)
-    .map((m) => (m.role === "user" ? `【${you}】${m.content}` : m.content))
+    .map((m) => (m.role === "user" ? `【${you}】${m.content}` : speaker ? `【${speaker}】${m.content}` : m.content))
     .join("\n\n");
   return `【直近の場面】\n${scene}\n\n次に読者が送る返事の候補を${SUGGESTION_COUNT}つ書いてください。`;
 }
 
-/** モデルの出力から候補を取り出す。番号や記号、かぎかっこを外し、長すぎるもの・安全でないものを除く */
-export function parseSuggestions(text: string): string[] {
+/**
+ * モデルの出力から候補を取り出す。番号や記号、かぎかっこを外し、長すぎるもの・安全でないもの・日本語以外が混ざったものを除く。
+ * 当事者視点では、登場人物の口ぶり（俺・お前）になった候補も除く。
+ */
+export function parseSuggestions(text: string, viewpoint?: Viewpoint): string[] {
   const out: string[] = [];
   for (const raw of text.split(/\r?\n/)) {
     let s = raw.trim();
@@ -71,6 +86,7 @@ export function parseSuggestions(text: string): string[] {
     if (/^(候補|返事|例)[0-9０-９]*[:：]?$/.test(s)) continue;
     // 候補はアプリが「次に言うこと」として差し出すので、通常の判定より厳しくする
     if (!checkText(s).ok || mentionsSexual(s) || needsCare(s)) continue;
+    if (hasForeignText(s) || (viewpoint === "self" && /俺|お前/.test(s))) continue;
     if (out.includes(s)) continue;
     out.push(s);
     if (out.length === SUGGESTION_COUNT) break;
@@ -90,14 +106,19 @@ export async function suggestReplies(input: {
 }): Promise<string[]> {
   const req = {
     system: buildSuggestPrompt(input),
-    messages: [{ role: "user" as const, content: buildSuggestRequest(input.messages, input.viewpoint) }],
+    messages: [
+      {
+        role: "user" as const,
+        content: buildSuggestRequest(input.messages, input.viewpoint, input.plot.personas.length === 1 ? callName(input.plot.personas[0]) : undefined),
+      },
+    ],
     tier: "fast" as const,
     maxTokens: 300,
     signal: input.signal,
     purpose: "suggest" as const,
   };
   for (let attempt = 0; attempt < 2; attempt++) {
-    const out = parseSuggestions(await generateText(input.provider, req));
+    const out = parseSuggestions(await generateText(input.provider, req), input.viewpoint);
     if (out.length > 0 || input.signal?.aborted) return out;
   }
   return [];

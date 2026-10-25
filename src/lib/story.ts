@@ -39,9 +39,32 @@ export type Beat =
 
 const QUOTE = /([^\s「」（）()*。、！？]{1,12})?「([^」]*)(」|$)/g;
 
+// 名前の異体字。文章AIが名前の字を変えて書いても（一條・髙槻など）、同じ人として扱う
+const VARIANTS: Record<string, string> = { 條: "条", 髙: "高", 﨑: "崎", 嵜: "崎", 邊: "辺", 邉: "辺", 澤: "沢", 濱: "浜", 齋: "斎", 齊: "斉", 櫻: "桜", 瀨: "瀬", 冰: "氷" };
+const normalizeName = (s: string) => Array.from(s, (c) => VARIANTS[c] ?? c).join("");
+
 function speakerOf(prefix: string, names: string[]): number | undefined {
-  const i = names.findIndex((n) => n === prefix || n.split(/[\s・]/).includes(prefix));
+  const p = normalizeName(prefix);
+  const i = names.findIndex((n) => {
+    const name = normalizeName(n);
+    return name === p || name.split(/[\s・]/).includes(p);
+  });
   return i >= 0 ? i : undefined;
+}
+
+/**
+ * ひとりの作品では、台詞が「」なしで書かれることが多い。文の途中の「…」（俺は「取れた」と…）は強調や引用なので、
+ * 吹き出しを分けないよう『…』にする。行の頭・文の終わり・」・名前のあとの「は、台詞の始まりのまま残す。
+ */
+function softenInlineQuotes(src: string, names: string[]): string {
+  return src.replace(/「([^「」\n]*)」/g, (whole, body: string, offset: number) => {
+    const before = src.slice(0, offset);
+    const line = before.slice(before.lastIndexOf("\n") + 1).trimEnd();
+    if (!line || /[」。！？!?]$/.test(line)) return whole;
+    const prefix = line.match(/[^\s「」（）()*。、！？]{1,12}$/)?.[0];
+    if (prefix && speakerOf(prefix, names) !== undefined) return whole;
+    return `『${body}』`;
+  });
 }
 
 /** 返答を、話者つきの台詞・地の文・補足に分ける。流している途中の閉じていない「も台詞として扱う。 */
@@ -66,7 +89,7 @@ export function toBeats(text: string, names: string[]): Beat[] {
       beats.push({ kind: "narration", text: part.text });
       return;
     }
-    let src = part.text;
+    let src = solo ? softenInlineQuotes(part.text, names) : part.text;
     if (carry) {
       const close = src.indexOf("」");
       const open = src.indexOf("「");

@@ -77,6 +77,19 @@ export class Typewriter {
     this.maybeFinish();
   }
 
+  /** 全文を書き直す（日本語以外が混ざって作り直したときなど）。同じところまではそのまま、違うところから打ち直す */
+  rewrite(text: string) {
+    if (this.settled) return;
+    let same = 0;
+    const limit = Math.min(this.shown, text.length);
+    while (same < limit && this.target[same] === text[same]) same++;
+    this.target = text;
+    this.shown = same;
+    this.onUpdate(text.slice(0, same));
+    this.kick();
+    this.maybeFinish();
+  }
+
   /** これ以上は届かない。見せ終えたら done が解決する */
   end() {
     this.ended = true;

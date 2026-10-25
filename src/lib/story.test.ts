@@ -52,6 +52,10 @@ describe("toBeats", () => {
     expect(toBeats("ライナルト「下がれ」", ["ライナルト・ヴァイス", "ノア・エルフェン"])[0]).toMatchObject({ speaker: 0 });
   });
 
+  it("名前の字が異体字に変わっても、同じ人の台詞にする", () => {
+    expect(toBeats("一條「……あ、ありがとう」", ["一条", "久住"])[0]).toMatchObject({ speaker: 0 });
+  });
+
   it("流している途中の閉じていない台詞も台詞として出す", () => {
     expect(toBeats("透「言ったら、お前は", duo)).toEqual([{ kind: "line", text: "言ったら、お前は", speaker: 1, open: true }]);
   });
@@ -63,6 +67,16 @@ describe("toBeats", () => {
       { kind: "line", text: "寝ろ。明日バイトだろ", speaker: 1, open: false },
       { kind: "line", text: "えー", speaker: 0, open: false },
     ]);
+  });
+
+  it("ひとりの作品では、文の途中の「…」で吹き出しを分けず『…』にする", () => {
+    const solo = ["天城 響"];
+    expect(toBeats("俺はいつも、「正解」を見つける側なんで……", solo)).toEqual([
+      { kind: "line", text: "俺はいつも、『正解』を見つける側なんで……", speaker: 0 },
+    ]);
+    expect(toBeats("先輩が「この味好きだな」って呟くのが、目についてました。", ["日向 颯"])).toHaveLength(1);
+    // 行の頭・文の終わり・」のあとの「は、これまでどおり台詞の始まり
+    expect(toBeats("「……座って」「無理すんな」", ["灰原 湊斗"])).toHaveLength(2);
   });
 
   it("（…）は補足として分ける", () => {

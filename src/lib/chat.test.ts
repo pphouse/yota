@@ -87,6 +87,30 @@ describe("runTurn", () => {
     expect(msgs.at(-1)?.flagged).toBe(true);
   });
 
+  it("日本語以外の文字が混ざったら1回だけ作り直し、画面の文章を書き直す", async () => {
+    const conv = await newConv();
+    let calls = 0;
+    const mixed: LLMProvider = {
+      name: "mixed",
+      async *stream() {
+        calls++;
+        if (calls === 1) {
+          yield "*マスクの";
+          yield "耳挂を摘む* ……ここじゃ";
+          yield "だめ";
+        } else {
+          yield "*マスクのひもを摘む* ……ここじゃ、だめ";
+        }
+      },
+    };
+    const events = await collect(runTurn({ session: adult, conversation: conv, plot, provider: mixed, message: "マスクとって" }));
+    expect(calls).toBe(2);
+    expect(events.filter((e) => e.t === "d").map((e) => (e as { v: string }).v)).toEqual(["*マスクの"]);
+    expect(events).toContainEqual({ t: "rewrite", v: "*マスクのひもを摘む* ……ここじゃ、だめ" });
+    const msgs = await listMessages(conv.id);
+    expect(msgs.at(-1)).toMatchObject({ content: "*マスクのひもを摘む* ……ここじゃ、だめ", flagged: false });
+  });
+
   it("再生成は最後の返答を作り直し、オープニングは消さない", async () => {
     const conv = await newConv();
     await collect(runTurn({ session: adult, conversation: conv, plot, provider: new MockProvider(0), message: "やあ" }));

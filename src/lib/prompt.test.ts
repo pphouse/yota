@@ -16,16 +16,24 @@ describe("buildSystemPrompt", () => {
   it("見守り視点ではユーザーに話しかけないよう指示する", () => {
     const p = buildSystemPrompt({ plot: duo, viewpoint: "watch", isMinor: false, summary: "", userTurns: 1 });
     expect(p).toContain("【視点：見守り】");
-    expect(p).toContain("ユーザーに話しかけてはいけません");
+    expect(p).toContain("ユーザーに話しかけません");
+    expect(p).toContain("つぶやきやツッコミの言葉を、登場人物に言わせてはいけません");
   });
 
-  it("山場の候補は2〜3往復目だけに入れ、1往復目とそれ以降は外す", () => {
+  it("山場は1往復目には起こさず、2往復目で兆しを入れ、3往復目で必ず起こす。その後も候補を残す", () => {
     const at = (userTurns: number) => buildSystemPrompt({ plot: solo, viewpoint: "self", isMinor: false, summary: "", userTurns });
     expect(at(1)).not.toContain(solo.hooks[0]);
     expect(at(1)).toContain("大きな出来事は起こさず");
-    expect(at(2)).toContain(solo.hooks[0]);
-    expect(at(3)).toContain(solo.hooks[0]);
-    expect(at(4)).not.toContain(solo.hooks[0]);
+    expect(at(2)).toContain("兆し");
+    expect(at(3)).toContain("必ず起こし");
+    for (const n of [2, 3, 8]) expect(at(n)).toContain(solo.hooks[0]);
+    expect(at(8)).toContain("3〜4往復に1回");
+  });
+
+  it("複数人の作品では、台詞の前に付ける名前の表記を固定する", () => {
+    const p = buildSystemPrompt({ plot: getPlot("mock-wedding")!, viewpoint: "watch", isMinor: false, summary: "", userTurns: 1 });
+    expect(p).toContain("名前は「一条」「久住」の表記だけを使い");
+    expect(buildSystemPrompt({ plot: solo, viewpoint: "self", isMinor: false, summary: "", userTurns: 1 })).toContain("台詞は「」で囲まず");
   });
 
   it("未成年には恋愛表現の制限を追加する", () => {

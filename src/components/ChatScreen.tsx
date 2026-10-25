@@ -181,6 +181,9 @@ export function ChatScreen() {
             typer.replace(e.v);
             update((m) => ({ ...m, flagged: true }));
             break;
+          case "rewrite":
+            typer.rewrite(e.v);
+            break;
           case "done":
             saved = true;
             update((m) => ({ ...m, id: e.messageId }));

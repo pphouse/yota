@@ -86,6 +86,20 @@ describe("Typewriter", () => {
     expect(seen.at(-1)).toBe("*（表示できません）*");
   });
 
+  it("rewrite() は同じところまで残し、違うところから打ち直す", async () => {
+    const seen: string[] = [];
+    const tw = new Typewriter((s) => seen.push(s), clock);
+    tw.push("マスクの耳挂を");
+    advance(CHAR_MS * 20);
+    expect(seen.at(-1)).toBe("マスクの耳挂を");
+    tw.rewrite("マスクのひもを摘む");
+    expect(seen.at(-1)).toBe("マスクの");
+    tw.end();
+    advance(CHAR_MS * 20);
+    expect(seen.at(-1)).toBe("マスクのひもを摘む");
+    await expect(tw.done).resolves.toBeUndefined();
+  });
+
   it("届くのを待っていたあいだの時間を貯めず、次に届いた分も同じ速さで見せる", () => {
     const seen: string[] = [];
     const tw = new Typewriter((s) => seen.push(s), clock);

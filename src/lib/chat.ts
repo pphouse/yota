@@ -1,5 +1,6 @@
 import type { Plot } from "./characters";
-import type { LLMProvider, Tier } from "./llm";
+import { generateText, type LLMProvider, type Tier } from "./llm";
+import { hasForeignText, stripForeignScripts } from "./japanese";
 import { buildSystemPrompt, toApiMessages } from "./prompt";
 import {
   BLOCKED_INPUT_MESSAGE,
@@ -19,6 +20,8 @@ export type ChatEvent =
   | { t: "meta"; conversationId: string; userMessageId?: string }
   | { t: "d"; v: string }
   | { t: "replace"; v: string }
+  /** 日本語以外が混ざって作り直した。画面の文章を、違うところから打ち直す */
+  | { t: "rewrite"; v: string }
   | { t: "done"; messageId: string; flagged: boolean; ms: { first: number | null; total: number } }
   | { t: "blocked"; message: string }
   | { t: "notice"; kind: "care" | "late_night"; message: string; link?: string }
@@ -84,17 +87,18 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<ChatEvent> {
   const onAbort = () => controller.abort();
   input.signal?.addEventListener("abort", onAbort);
 
+  const request = {
+    system,
+    messages: toApiMessages(history.map((m) => ({ role: m.role, content: m.content }))),
+    tier: input.tier ?? "fast",
+    purpose: "chat" as const,
+  };
   let text = "";
   let flagged = false;
+  let foreign = false;
   let first: number | null = null;
   try {
-    for await (const chunk of provider.stream({
-      system,
-      messages: toApiMessages(history.map((m) => ({ role: m.role, content: m.content }))),
-      tier: input.tier ?? "fast",
-      signal: controller.signal,
-      purpose: "chat",
-    })) {
+    for await (const chunk of provider.stream({ ...request, signal: controller.signal })) {
       if (first === null) first = now() - started;
       text += chunk;
       // 流しながら判定し、引っかかったらその場で差し替えて生成を止める
@@ -103,10 +107,16 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<ChatEvent> {
         controller.abort();
         break;
       }
+      // 日本語以外の文字が混ざったら、流すのをやめて下で作り直す
+      if (hasForeignText(text)) {
+        foreign = true;
+        controller.abort();
+        break;
+      }
       yield { t: "d", v: chunk };
     }
   } catch (err) {
-    if (!flagged) {
+    if (!flagged && !foreign) {
       if (input.signal?.aborted) return;
       console.error("[chat] generation failed", err);
       yield { t: "error", message: "返答の生成に失敗しました。もう一度試してください。" };
@@ -114,6 +124,21 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<ChatEvent> {
     }
   } finally {
     input.signal?.removeEventListener("abort", onAbort);
+  }
+
+  if (foreign) {
+    // 作り直しは1回だけ。それでも混ざったら、ハングルなどの語だけ取り除いて使う
+    try {
+      text = await generateText(provider, { ...request, signal: input.signal });
+    } catch (err) {
+      if (input.signal?.aborted) return;
+      console.error("[chat] regeneration failed", err);
+      yield { t: "error", message: "返答の生成に失敗しました。もう一度試してください。" };
+      return;
+    }
+    if (hasForeignText(text)) text = stripForeignScripts(text);
+    if (!checkText(text).ok) flagged = true;
+    else if (text.trim()) yield { t: "rewrite", v: text.trim() };
   }
 
   if (!flagged && text.trim()) {

@@ -35,6 +35,12 @@ describe("parseSuggestions", () => {
     ].join("\n");
     expect(parseSuggestions(text)).toEqual(["ありがとう", "また来てもいい？", "*うなずく*"]);
   });
+
+  it("日本語以外が混ざった候補と、当事者視点で登場人物の口ぶりになった候補を除く", () => {
+    const text = ["マスクの耳挂、直してあげる", "今соседだったよね", "ここには俺しかいない", "お前も食べる？", "ほんとに？"].join("\n");
+    expect(parseSuggestions(text, "self")).toEqual(["ほんとに？"]);
+    expect(parseSuggestions("透が俺の席に座る", "watch")).toEqual(["透が俺の席に座る"]);
+  });
 });
 
 describe("buildSuggestPrompt / buildSuggestRequest", () => {
@@ -55,6 +61,7 @@ describe("buildSuggestPrompt / buildSuggestRequest", () => {
     expect(req).not.toContain("発言0");
     expect(req).toContain("【あなた】発言11");
     expect(req).toContain("発言10");
+    expect(buildSuggestRequest(messages, "self", "湊斗")).toContain("【湊斗】発言10");
   });
 });
 
