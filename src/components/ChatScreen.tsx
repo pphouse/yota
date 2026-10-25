@@ -5,10 +5,11 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AgeGate } from "@/components/AgeGate";
 import { SceneCard } from "@/components/SceneCard";
-import { StoryText } from "@/components/StoryText";
-import { getPlot, VIEWPOINT_LABEL, type Viewpoint } from "@/lib/characters";
+import { AvatarStack } from "@/components/Avatar";
+import { BackIcon, CardIcon, PenIcon, RestartIcon, RetryIcon, SendIcon } from "@/components/icons";
+import { AssistantMessage, UserMessage } from "@/components/StoryMessage";
+import { getPlot, plotVars, VIEWPOINT_LABEL, type Viewpoint } from "@/lib/characters";
 import { api, readEvents } from "@/lib/client";
-import { parseStory } from "@/lib/story";
 
 type UIMessage = {
   key: string;
@@ -58,7 +59,6 @@ export function ChatScreen() {
   const [input, setInput] = useState("");
   const [editing, setEditing] = useState<{ key: string; text: string } | null>(null);
   const [card, setCard] = useState<string | null>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -90,8 +90,9 @@ export function ChatScreen() {
     };
   }, [plot, viewpoint, applyLoaded]);
 
+  // 下に固定した入力欄に隠れないよう、ページの一番下まで送る
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: "end" });
+    window.scrollTo({ top: document.documentElement.scrollHeight });
   }, [messages]);
 
   async function stream(body: { message?: string; regenerate?: boolean }, optimisticUser?: UIMessage) {
@@ -237,136 +238,133 @@ export function ChatScreen() {
   }
 
   const last = messages[messages.length - 1];
-  const solo = plot.personas.length === 1;
+  const watch = viewpoint === "watch";
   const starters = messages.length === 1 && !busy ? plot.starterReplies[viewpoint] ?? [] : [];
+  const pill =
+    "press inline-flex min-h-9 items-center gap-1.5 rounded-full border border-line bg-night-2 px-3 text-[0.8rem] text-paper disabled:opacity-40";
 
   return (
-    <div style={{ "--hue": plot.hue } as React.CSSProperties} className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-10 border-b border-line bg-night/90 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-3">
-          <Link href="/" aria-label="物語の一覧へ" className="-ml-1 rounded p-1 text-mist hover:text-paper">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-              <path d="M15 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+    <div style={plotVars(plot) as React.CSSProperties} className="flex min-h-dvh flex-col">
+      <header className="sticky top-0 z-10 bg-night/92 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-xl items-center gap-3 px-3 py-2.5">
+          <Link href="/" aria-label="物語の一覧へ" className="press grid size-9 place-items-center rounded-full text-mist hover:text-paper">
+            <BackIcon size={22} />
           </Link>
+          <AvatarStack personas={plot.personas} size={36} />
           <div className="min-w-0 flex-1">
-            <h1 className="truncate font-mincho text-lg leading-tight">{plot.title}</h1>
-            <p className="truncate text-xs text-tint">{plot.personas.map((p) => p.name).join("と")}</p>
+            <h1 className="truncate font-mincho text-[1.02rem] font-bold leading-tight">{plot.title}</h1>
+            <p className="mt-0.5 truncate text-[0.72rem] text-mist">{plot.personas.map((p) => p.name).join(" × ")}</p>
           </div>
-          <button onClick={restart} disabled={busy || phase !== "ready"} className="text-xs text-mist hover:text-paper disabled:opacity-40">
-            最初から
+          <button
+            onClick={restart}
+            disabled={busy || phase !== "ready"}
+            aria-label="最初から"
+            title="最初から"
+            className="press grid size-9 place-items-center rounded-full text-mist hover:text-paper disabled:opacity-40"
+          >
+            <RestartIcon size={19} />
           </button>
         </div>
         {plot.viewpoints.length > 1 && (
-          <div className="mx-auto flex max-w-xl gap-2 px-4 pb-3">
-            {plot.viewpoints.map((v) => (
-              <button
-                key={v}
-                onClick={() => {
-                  if (v === viewpoint) return;
-                  setPhase("loading");
-                  setMessages([]);
-                  router.replace(`/chat/${plot.id}?v=${v}`);
-                }}
-                aria-pressed={v === viewpoint}
-                className={`rounded-full px-3 py-1 text-xs ${v === viewpoint ? "bg-tint text-night" : "border border-line text-mist"}`}
-              >
-                {VIEWPOINT_LABEL[v]}
-              </button>
-            ))}
+          <div className="mx-auto max-w-xl px-4 pb-2.5">
+            <div className="grid grid-cols-2 rounded-full bg-night-2 p-0.5">
+              {plot.viewpoints.map((v) => (
+                <button
+                  key={v}
+                  onClick={() => {
+                    if (v === viewpoint) return;
+                    setPhase("loading");
+                    setMessages([]);
+                    router.replace(`/chat/${plot.id}?v=${v}`);
+                  }}
+                  aria-pressed={v === viewpoint}
+                  className={`press rounded-full py-1.5 text-xs font-medium ${v === viewpoint ? "bg-paper text-night" : "text-mist"}`}
+                >
+                  {VIEWPOINT_LABEL[v]}
+                </button>
+              ))}
+            </div>
           </div>
         )}
+        <div className="h-px bg-line/70" />
       </header>
 
       {phase === "gate" ? (
-        <AgeGate onDone={() => void loadConversation()} />
+        <AgeGate plot={plot} onDone={() => void loadConversation()} />
       ) : (
-        <main className="mx-auto w-full max-w-xl flex-1 px-5 pb-6 pt-6">
-          {phase === "loading" && <p className="text-sm text-mist">物語を開いています</p>}
-          <ol className="space-y-7">
+        <main className="mx-auto w-full max-w-xl flex-1 px-4 pb-6 pt-5">
+          {phase === "loading" && <p className="py-10 text-center text-sm text-mist">物語を開いています</p>}
+          <ol className="space-y-6">
             {messages.map((m) => (
-              <li key={m.key}>
+              <li key={m.key} data-beat className={m === last ? "arrive" : undefined} {...(m.streaming ? { "data-streaming": "" } : {})}>
                 {m.role === "user" ? (
-                  <div className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm border border-line bg-night-2 px-4 py-2.5 text-[0.95rem] leading-7">
-                    {parseStory(m.content).map((p, i) =>
-                      p.kind === "narration" ? (
-                        <span key={i} className="block text-[0.85rem] text-mist">
-                          {p.text}
-                        </span>
-                      ) : (
-                        <span key={i} className="block">
-                          {p.text}
-                        </span>
-                      ),
-                    )}
+                  <UserMessage text={m.content} watch={watch} />
+                ) : editing?.key === m.key ? (
+                  <div>
+                    <textarea
+                      value={editing.text}
+                      onChange={(e) => setEditing({ key: m.key, text: e.target.value })}
+                      rows={8}
+                      aria-label="返答を直す"
+                      className="w-full rounded-2xl border border-tint/50 bg-night-2 p-4 font-mincho text-[0.98rem] leading-8 focus:outline-none"
+                    />
+                    <div className="mt-2 flex gap-2">
+                      <button onClick={saveEdit} className="press rounded-full bg-tint px-5 py-2 text-sm font-bold text-night">
+                        保存する
+                      </button>
+                      <button onClick={() => setEditing(null)} className="press px-3 text-sm text-mist">
+                        やめる
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <article className="border-l-2 border-tint/60 pl-4">
-                    {solo && <p className="mb-1.5 text-xs text-tint">{plot.personas[0].name}</p>}
-                    {editing?.key === m.key ? (
-                      <div>
-                        <textarea
-                          value={editing.text}
-                          onChange={(e) => setEditing({ key: m.key, text: e.target.value })}
-                          rows={8}
-                          className="w-full rounded-lg border border-line bg-night-2 p-3 font-mincho text-[0.98rem] leading-8"
-                        />
-                        <div className="mt-2 flex gap-3 text-sm">
-                          <button onClick={saveEdit} className="rounded-full bg-paper px-4 py-1.5 font-semibold text-night">
-                            保存する
-                          </button>
-                          <button onClick={() => setEditing(null)} className="px-2 text-mist">
-                            やめる
-                          </button>
-                        </div>
-                      </div>
-                    ) : m.streaming && !m.content ? (
-                      <p className="typing flex gap-1.5 py-2 text-tint" aria-label="返事を書いています">
-                        <span>●</span>
-                        <span>●</span>
-                        <span>●</span>
-                      </p>
-                    ) : (
-                      <StoryText text={m.content} />
-                    )}
-                    {!m.streaming && m.id && editing?.key !== m.key && (
-                      <div className="mt-2 flex gap-4 text-xs text-mist">
-                        {m === last && messages.length > 1 && (
+                  <>
+                    <AssistantMessage text={m.content} personas={plot.personas} streaming={m.streaming} watch={watch} />
+                    {!m.streaming && m.id && m === last && (
+                      <div className="mt-3 flex flex-wrap gap-2 pl-[44px]">
+                        {messages.length > 1 && (
                           <>
-                            <button onClick={regenerate} disabled={busy} className="hover:text-paper disabled:opacity-40">
-                              書き直してもらう
+                            <button onClick={regenerate} disabled={busy} className={pill}>
+                              <RetryIcon size={15} />
+                              書き直す
                             </button>
-                            <button onClick={() => setEditing({ key: m.key, text: m.content })} className="hover:text-paper">
-                              自分で直す
+                            <button onClick={() => setEditing({ key: m.key, text: m.content })} className={pill}>
+                              <PenIcon size={15} />
+                              編集
                             </button>
                           </>
                         )}
-                        {!m.flagged && (
-                          <button onClick={() => setCard(m.content)} className="text-tint hover:text-paper">
-                            名場面カードにする
+                        {!m.flagged && m === last && (
+                          <button
+                            onClick={() => setCard(m.content)}
+                            className="press inline-flex min-h-9 items-center gap-1.5 rounded-full bg-tint px-3 text-[0.8rem] font-bold text-night"
+                          >
+                            <CardIcon size={15} />
+                            カードにする
                           </button>
                         )}
                       </div>
                     )}
-                  </article>
+                  </>
                 )}
               </li>
             ))}
           </ol>
           {last?.role === "user" && !busy && phase === "ready" && (
-            <button onClick={regenerate} className="mt-4 text-sm text-tint underline">
+            <button onClick={regenerate} className={`${pill} mt-4`}>
+              <RetryIcon size={15} />
               返事をもう一度もらう
             </button>
           )}
-          <div ref={bottomRef} />
         </main>
       )}
 
       {phase === "ready" && (
-        <footer className="sticky bottom-0 border-t border-line bg-night/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
-          <div className="mx-auto max-w-xl px-4 pt-3">
+        <footer className="sticky bottom-0 bg-night/95 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+          <div className="h-px bg-line/70" />
+          <div className="mx-auto max-w-xl pt-2.5">
             {notice && (
-              <div role="status" className="mb-3 rounded-lg border border-amber/40 px-3 py-2 text-xs leading-6 text-amber">
+              <div role="status" className="mx-4 mb-2.5 rounded-xl border border-amber/40 bg-amber/10 px-3.5 py-2.5 text-xs leading-6 text-amber">
                 {notice.message}
                 {notice.link && (
                   <a href={notice.link} target="_blank" rel="noopener noreferrer" className="ml-1 underline">
@@ -376,10 +374,16 @@ export function ChatScreen() {
               </div>
             )}
             {starters.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-2">
+              <div className="rail mb-2.5 flex gap-2 overflow-x-auto px-4">
                 {starters.map((s) => (
-                  <button key={s} onClick={() => send(s)} className="rounded-full border border-tint/50 px-3 py-1.5 text-left text-xs text-paper hover:bg-night-2">
-                    {s}
+                  <button
+                    key={s}
+                    data-starter
+                    onClick={() => send(s)}
+                    className="press shrink-0 rounded-full border px-4 py-2 text-[0.85rem] text-paper"
+                    style={{ borderColor: "color-mix(in oklab, var(--tint) 55%, transparent)", background: "color-mix(in oklab, var(--tint) 10%, var(--night))" }}
+                  >
+                    {s.replace(/\*/g, "")}
                   </button>
                 ))}
               </div>
@@ -390,15 +394,15 @@ export function ChatScreen() {
                   e.preventDefault();
                   send(input);
                 }}
-                className="flex items-end gap-2"
+                className="flex items-end gap-2 px-3"
               >
                 <button
                   type="button"
                   onClick={insertAction}
                   title="*で囲むと行動や情景になります"
-                  className="shrink-0 rounded-full border border-line px-3 py-2.5 text-xs text-mist hover:text-paper"
+                  className="press h-11 shrink-0 rounded-full bg-night-2 px-3.5 text-xs font-medium text-mist hover:text-paper"
                 >
-                  行動
+                  ＊行動
                 </button>
                 <textarea
                   ref={inputRef}
@@ -407,16 +411,17 @@ export function ChatScreen() {
                   onKeyDown={onKeyDown}
                   rows={1}
                   maxLength={2000}
-                  placeholder={viewpoint === "watch" ? "見たい展開を書く" : "話しかける"}
+                  placeholder={watch ? "見たい展開を書く" : `${plot.personas.length === 1 ? "話しかける" : "ふたりに話しかける"}`}
                   aria-label="メッセージ"
-                  className="max-h-40 min-h-11 flex-1 resize-none rounded-2xl border border-line bg-night-2 px-4 py-2.5 text-base leading-6 placeholder:text-mist/70 focus:border-tint focus:outline-none"
+                  className="max-h-40 min-h-11 flex-1 resize-none rounded-[1.4rem] border border-line bg-night-2 px-4 py-2.5 text-base leading-6 placeholder:text-mist/70 focus:border-tint focus:outline-none"
                 />
                 <button
                   type="submit"
+                  aria-label="送る"
                   disabled={busy || !input.trim()}
-                  className="shrink-0 rounded-full bg-paper px-4 py-2.5 text-sm font-semibold text-night disabled:opacity-40"
+                  className="press grid size-11 shrink-0 place-items-center rounded-full bg-tint text-night disabled:bg-night-3 disabled:text-mist"
                 >
-                  送る
+                  <SendIcon size={20} />
                 </button>
               </form>
             )}

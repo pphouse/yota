@@ -1,4 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import "@fontsource/shippori-mincho-b1/500.css";
+import "@fontsource/shippori-mincho-b1/700.css";
+import "@fontsource/zen-kaku-gothic-new/400.css";
+import "@fontsource/zen-kaku-gothic-new/500.css";
+import "@fontsource/zen-kaku-gothic-new/700.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1b1630",
+  themeColor: "#1d1838",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

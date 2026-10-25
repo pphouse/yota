@@ -24,8 +24,9 @@ function names(system: string): string[] {
 }
 
 function shortName(full: string): string {
-  const parts = full.split(/[\s・]/);
-  return parts.length > 1 ? parts[parts.length - 1] : full;
+  if (full.includes("・")) return full.split("・")[0];
+  const parts = full.split(/\s/);
+  return parts[parts.length - 1];
 }
 
 /** 書き直しで毎回ちがう返答になるよう、候補から選ぶ */
@@ -61,11 +62,13 @@ function reply(req: GenerateRequest): string {
     ].join("\n");
   }
   const who = cast[0] ?? "彼";
+  // ふたり以上の作品では、誰の台詞か分かるよう名前を付ける
+  const say = (t: string) => (cast.length > 1 ? `${who}「${t}」` : `「${t}」`);
   return [
-    pick([`*${who}は少しだけ目を細めて、あなたの言葉を聞いていた*`, `*${who}は手を止め、カウンター越しにあなたを見る*`]),
-    echo ? `「${echo}……そうか」` : "「……そうか」",
-    pick(["*小さく息を吐いて、視線をそらす*", "*あなたとの距離を、一歩だけ詰める*", "*湯気の向こうで、少しだけ笑った*"]),
-    `「${pick(["……雨、止まないな。もう少しここにいろ", "次は、もう少しちゃんと話を聞かせて", "無理して笑わなくていい。ここでは"])}」`,
+    pick([`*${who}は少しだけ目を細めて、あなたの言葉を聞いていた*`, `*${who}はふと手を止め、あなたをまっすぐ見る*`]),
+    say(echo ? `${echo}……そうか` : "……そうか"),
+    pick(["*小さく息を吐いて、視線をそらす*", "*あなたとの距離を、一歩だけ詰める*", "*ほんの少しだけ、口元がゆるんだ*"]),
+    say(pick(["……もう少し、ここにいろ", "次は、もう少しちゃんと話を聞かせて", "無理して笑わなくていい。俺の前では"])),
     "",
     "（ダミー応答です。APIキーを設定すると本物のAIが返答します）",
   ].join("\n");

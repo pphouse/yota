@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { AvatarStack } from "@/components/Avatar";
+import { callName, type Plot } from "@/lib/characters";
 import { api } from "@/lib/client";
 
 /** 物語を始める前に一度だけ、生まれた年と月を聞く。アカウント登録はまだ求めない。 */
-export function AgeGate({ onDone }: { onDone: (isMinor: boolean) => void }) {
+export function AgeGate({ plot, onDone }: { plot: Plot; onDone: (isMinor: boolean) => void }) {
   const thisYear = new Date().getFullYear();
   const [year, setYear] = useState("");
   const [month, setMonth] = useState("");
@@ -28,20 +30,25 @@ export function AgeGate({ onDone }: { onDone: (isMinor: boolean) => void }) {
   }
 
   const select =
-    "w-full appearance-none rounded-lg border border-line bg-night px-4 py-3 text-base text-paper focus:border-tint";
+    "w-full appearance-none rounded-2xl border border-line bg-night-2 px-4 py-3.5 text-base text-paper focus:border-tint focus:outline-none";
 
   return (
-    <form onSubmit={submit} className="mx-auto w-full max-w-sm px-5 py-10">
-      <h2 className="font-mincho text-2xl leading-snug">はじめる前に</h2>
-      <p className="mt-3 text-sm leading-7 text-mist">
-        年齢に合わせて物語の表現を調整するため、生まれた年と月を教えてください。名前やメールアドレスは必要ありません。
-      </p>
-      <div className="mt-6 grid grid-cols-2 gap-3">
-        <label className="block text-xs text-mist">
+    <form onSubmit={submit} className="mx-auto w-full max-w-sm px-6 pb-10 pt-12">
+      <div className="flex flex-col items-center text-center">
+        <AvatarStack personas={plot.personas} size={60} />
+        <h2 className="mt-5 font-mincho text-[1.45rem] font-bold leading-snug">
+          {plot.personas.map(callName).join("と")}が待っています
+        </h2>
+        <p className="mt-3 text-[0.88rem] leading-7 text-mist">
+          物語の表現を年齢に合わせるため、生まれた年と月だけ教えてください。名前やメールアドレスはいりません。
+        </p>
+      </div>
+      <div className="mt-8 grid grid-cols-[1.4fr_1fr] gap-3">
+        <label className="block text-xs font-medium text-mist">
           生まれた年
           <select required value={year} onChange={(e) => setYear(e.target.value)} className={`${select} mt-1.5`}>
             <option value="" disabled>
-              選択
+              選ぶ
             </option>
             {Array.from({ length: 90 }, (_, i) => thisYear - 8 - i).map((y) => (
               <option key={y} value={y}>
@@ -50,11 +57,11 @@ export function AgeGate({ onDone }: { onDone: (isMinor: boolean) => void }) {
             ))}
           </select>
         </label>
-        <label className="block text-xs text-mist">
+        <label className="block text-xs font-medium text-mist">
           月
           <select required value={month} onChange={(e) => setMonth(e.target.value)} className={`${select} mt-1.5`}>
             <option value="" disabled>
-              選択
+              選ぶ
             </option>
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
               <option key={m} value={m}>
@@ -72,11 +79,13 @@ export function AgeGate({ onDone }: { onDone: (isMinor: boolean) => void }) {
       <button
         type="submit"
         disabled={busy || !year || !month}
-        className="mt-6 w-full rounded-full bg-paper py-3.5 text-sm font-semibold text-night disabled:opacity-40"
+        className="press mt-7 w-full rounded-full bg-tint py-4 text-[0.95rem] font-bold text-night disabled:bg-night-3 disabled:text-mist"
       >
         {busy ? "確認しています" : "物語をはじめる"}
       </button>
-      <p className="mt-4 text-xs leading-6 text-mist">18歳未満の方は、恋愛表現をおだやかにし、1日の利用時間を3時間までにしています。</p>
+      <p className="mt-5 text-center text-xs leading-6 text-mist/80">
+        18歳未満の方は、恋愛の表現をおだやかにし、1日の利用を3時間までにしています。
+      </p>
     </form>
   );
 }
