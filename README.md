@@ -101,6 +101,8 @@ src/
     llm/                     文章AIの差し替え層（Anthropic / OpenAI / Gemini / ダミー）
 ```
 
+性格ベクトル（activation steering）で、キャラの性格を調整する実験の道具と指示書は `steering/` にある（`steering/INSTRUCTIONS.md`。DGX Spark で、モデルとベクトルの組み合わせを探す）。アプリ本体からは使っていない。
+
 キャラの絵は `public/art/` にある（Higgsfield の nano_banana_2 で生成。表紙は 2:3、背景は 9:16、どちらも 2k で作り、下のサイズに縮めて書き出す）。表紙 `<plotId>-cover.webp`（900×1342）、会話画面の背景 `<plotId>-bg.webp`（幅720）、アイコン用の顔 `face-<名前>.webp`（192×192）。パスは `characters.ts` の `cover` / `backdrop` / `face` に書く。
 
 ### 1往復の流れ

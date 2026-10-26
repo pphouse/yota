@@ -1,0 +1,5 @@
+# torch は環境に合わせて入れる（DGX Spark では NVIDIA の PyTorch コンテナに入っているものを使う）
+transformers>=4.51
+accelerate
+fastapi
+uvicorn
