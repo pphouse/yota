@@ -8,8 +8,8 @@ import { GENRES, type Genre, type Plot, type Viewpoint } from "@/lib/characters"
 import { track } from "@/lib/client";
 
 const TABS: { id: Viewpoint; label: string; hint: string }[] = [
-  { id: "self", label: "あなたが主人公", hint: "キャラがあなたに話しかけます" },
-  { id: "watch", label: "ふたりを見守る", hint: "あなたは登場せず、ふたりのやりとりを眺めます" },
+  { id: "self", label: "あなたが主人公", hint: "あなたも登場人物になって、キャラと話します" },
+  { id: "watch", label: "ふたりを見守る", hint: "あなたは登場せず、ふたりの会話を見守ります" },
 ];
 
 /** 絞りこみ。カテゴリのチップか、カードのハッシュタグで選ぶ */
@@ -84,7 +84,7 @@ export function PlotList({ plots }: { plots: Plot[] }) {
 
   return (
     <section ref={top} className="mt-9 scroll-mt-14 px-5">
-      <h2 className="text-[1.15rem] font-black">物語をえらぶ</h2>
+      <h2 className="text-[1.15rem] font-black">すべての作品</h2>
       <div role="tablist" aria-label="遊び方" className="rail mt-3 flex gap-2 overflow-x-auto">
         {TABS.map((t) => (
           <button
@@ -141,9 +141,9 @@ export function PlotList({ plots }: { plots: Plot[] }) {
         </ul>
       ) : (
         <div className="mt-6 rounded-2xl bg-night-2 px-4 py-8 text-center">
-          <p className="text-sm text-mist">この遊び方では、まだこのタグの物語がありません。</p>
+          <p className="text-sm text-mist">このタグの作品はまだありません。</p>
           <button onClick={() => choose(null, "empty")} className="press mt-3 rounded-full bg-night-3 px-4 py-2 text-sm font-bold">
-            すべての物語を見る
+            すべての作品を見る
           </button>
         </div>
       )}

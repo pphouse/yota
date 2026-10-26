@@ -399,7 +399,7 @@ export function ChatScreen() {
         <AgeGate plot={plot} nameOnly={phase === "name"} onDone={() => void loadConversation()} />
       ) : (
         <main className="mx-auto w-full max-w-xl flex-1 px-4 pb-6 pt-5">
-          {phase === "loading" && <p className="py-10 text-center text-sm text-mist">物語を開いています</p>}
+          {phase === "loading" && <p className="py-10 text-center text-sm text-mist">読み込み中…</p>}
           {phase === "ready" && (
             // プロローグ：作品の舞台を、物語の入口としてナレーションで見せる
             <div className="mb-6">

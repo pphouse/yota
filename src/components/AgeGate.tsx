@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { AvatarStack } from "@/components/Avatar";
 import { ChevronDownIcon } from "@/components/icons";
-import { callName, type Plot } from "@/lib/characters";
+import type { Plot } from "@/lib/characters";
 import { api } from "@/lib/client";
 import { USER_NAME_MAX } from "@/lib/username";
 
@@ -56,11 +56,11 @@ export function AgeGate({ plot, nameOnly = false, onDone }: { plot: Plot; nameOn
       <div className={`mx-auto max-w-sm px-6 ${plot.cover ? "-mt-10" : "pt-12"} relative`}>
         <div className="flex flex-col items-center text-center">
           <AvatarStack personas={plot.personas} size={60} />
-          <h2 className="mt-4 text-[1.45rem] font-black leading-snug">{plot.personas.map(callName).join("と")}が待っています</h2>
+          <h2 className="mt-4 text-[1.45rem] font-black leading-snug">{nameOnly ? "名前を決める" : "はじめる前に"}</h2>
           <p className="break-phrase mt-2.5 text-[0.85rem] leading-7 text-mist">
             {nameOnly
-              ? "物語の中で、あなたはこの名前で呼ばれます。"
-              : "物語の中で呼ばれる名前と、表現を年齢に合わせるための生まれた年月を教えてください。メールアドレスはいりません。"}
+              ? "物語の中で、キャラがあなたをこの名前で呼びます。"
+              : "名前と生まれた年月を入力してください。生まれた年月は年齢の確認にだけ使います。メールアドレスの登録はいりません。"}
           </p>
         </div>
         <label className="mt-6 block text-xs font-bold text-mist">

@@ -70,7 +70,7 @@ export function UserName() {
                   className="mt-1.5 w-full rounded-2xl bg-night-3 px-4 py-3.5 text-base font-bold text-paper focus:outline-none focus:ring-2 focus:ring-brand/70"
                 />
               </label>
-              <p className="mt-2 text-xs leading-5 text-mist/80">これから始まる会話から、この名前で呼ばれます。</p>
+              <p className="mt-2 text-xs leading-5 text-mist/80">次の返答から、この名前で呼ばれます。</p>
               {error && (
                 <p role="alert" className="mt-3 text-sm text-amber">
                   {error}

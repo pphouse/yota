@@ -86,7 +86,6 @@ export type Plot = {
 export const PLOTS: Plot[] = [
   {
     id: "midnight-barista",
-    featured: true,
     cover: "/art/midnight-barista-cover.webp",
     backdrop: "/art/midnight-barista-bg.webp",
     title: "午前2時のバリスタ",

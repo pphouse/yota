@@ -6,10 +6,10 @@ import "@fontsource/noto-sans-jp/900.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "yota — 推しと紡ぐ物語",
-  description: "AIのキャラクターと、あなただけの物語を。返事はすぐ、広告はなし。",
+  title: "yota｜キャラと話して進める恋愛ストーリー",
+  description: "キャラクターと会話しながら物語を進めるチャットノベル。登録なし・広告なしで遊べます。",
   applicationName: "yota",
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  icons: { icon: "/icon.svg", apple: "/apple-icon.png" },
   appleWebApp: { capable: true, title: "yota", statusBarStyle: "black-translucent" },
 };
 

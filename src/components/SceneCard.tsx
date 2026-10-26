@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Plot, Viewpoint } from "@/lib/characters";
+import { LOGO_MOON, LOGO_VIEWBOX, LOGO_WORD } from "@/components/Logo";
 import { track } from "@/lib/client";
 import { pickQuote } from "@/lib/story";
 
@@ -12,7 +13,6 @@ const GOTHIC = '"Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sa
 const NIGHT = "#0f0f13";
 const PAPER = "#f5f5f7";
 const MIST = "#a3a3ae";
-const TAGLINE = "この続きは、あなたが書く。";
 // 行頭に来てはいけない文字（簡易の禁則処理）
 const NO_START = "、。，．」』）！？ー…・～っゃゅょァィゥェォッャュョ";
 
@@ -120,14 +120,16 @@ function draw(canvas: HTMLCanvasElement, plot: Plot, quote: string, cover: HTMLI
     x += ctx.measureText(p.name).width;
   });
 
-  ctx.fillStyle = MIST;
-  ctx.font = `500 28px ${GOTHIC}`;
-  ctx.fillText(TAGLINE, 88, H - 62);
-  ctx.textAlign = "right";
-  ctx.font = `900 72px ${GOTHIC}`;
-  const logo = ctx.measureText("yota").width;
-  ctx.fillStyle = brand(ctx, W - 84 - logo, W - 84);
-  ctx.fillText("yota", W - 84, H - 56);
+  // 右下に、画面のヘッダーと同じロゴ
+  const k = 66 / LOGO_VIEWBOX.h;
+  ctx.save();
+  ctx.translate(W - 84 - LOGO_VIEWBOX.w * k, H - 50 - LOGO_VIEWBOX.h * k);
+  ctx.scale(k, k);
+  ctx.fillStyle = PAPER;
+  ctx.fill(new Path2D(LOGO_WORD));
+  ctx.fillStyle = brand(ctx, LOGO_VIEWBOX.w * 0.75, LOGO_VIEWBOX.w);
+  ctx.fill(new Path2D(LOGO_MOON));
+  ctx.restore();
 }
 
 export function SceneCard({
@@ -155,12 +157,11 @@ export function SceneCard({
     let objectUrl: string | null = null;
     let alive = true;
     // 書体（900を含む）と表紙の絵を読み込んでから描く（読み込み前だと代わりの書体や空の絵で描かれてしまう）
-    const sample = quote + plot.title + plot.personas.map((p) => p.name).join("") + TAGLINE + "yota ×";
+    const sample = quote + plot.title + plot.personas.map((p) => p.name).join("") + " × ";
     void Promise.all([
       Promise.all([
         document.fonts.load(`700 58px ${GOTHIC}`, sample),
         document.fonts.load(`900 50px ${GOTHIC}`, sample),
-        document.fonts.load(`500 28px ${GOTHIC}`, sample),
       ]).catch(() => undefined),
       plot.cover ? loadImage(plot.cover) : Promise.resolve(null),
     ]).then(([, cover]) => {
@@ -179,7 +180,7 @@ export function SceneCard({
   }, [plot, quote]);
 
   const link = `${window.location.origin}/chat/${plot.id}?v=${viewpoint}&ref=card`;
-  const tweet = `${quote}\n\n『${plot.title}』で、続きはあなたが。\n#yota`;
+  const tweet = `${quote}\n\n『${plot.title}』より\n#yota`;
 
   async function share() {
     const canvas = canvasRef.current;

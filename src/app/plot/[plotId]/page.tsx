@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { Avatar } from "@/components/Avatar";
 import { BackIcon } from "@/components/icons";
 import { StartButtons } from "@/components/StartButtons";
-import { callName, getPlot, PLOTS, pronouns, type Persona } from "@/lib/characters";
+import { getPlot, PLOTS, pronouns, type Persona } from "@/lib/characters";
 
 export function generateStaticParams() {
   return PLOTS.map((p) => ({ plotId: p.id }));
@@ -80,7 +80,7 @@ export default async function PlotPage({ params }: PageProps<"/plot/[plotId]">) 
       <div className="fixed inset-x-0 bottom-0 z-20 bg-linear-to-t from-night via-night/95 to-transparent pb-[calc(1rem+env(safe-area-inset-bottom))] pt-6">
         <div className="mx-auto max-w-xl px-5">
           <Link href={`/chat/${plot.id}`} className="press btn-brand block rounded-2xl py-4 text-center text-base">
-            {plot.personas.map(callName).join("と")}に会いにいく
+            物語をはじめる
           </Link>
         </div>
       </div>
