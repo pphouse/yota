@@ -14,7 +14,7 @@ import { addMessage, createConversation, getConversation, listMessages } from ".
 import { MINOR_DAILY_LIMIT_SEC, recordActivity } from "./usage";
 
 const plot = getPlot("midnight-barista")!;
-const adult: Session = { id: "s1", birthYear: 1995, birthMonth: 4, age: 31, isMinor: false, name: "みお" };
+const adult: Session = { id: "s1", birthYear: 1995, birthMonth: 4, age: 31, isMinor: false, name: "みお", ref: "" };
 
 async function collect(gen: AsyncGenerator<ChatEvent>) {
   const events: ChatEvent[] = [];

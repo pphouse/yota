@@ -3,6 +3,7 @@ import { MIN_AGE, ageFrom, isValidBirth } from "@/lib/age";
 import { createSession, getSession, setSessionName } from "@/lib/session";
 import { listPlayedPlots, logEvent } from "@/lib/store";
 import { getUsage } from "@/lib/usage";
+import { normalizeRef } from "@/lib/ref";
 import { normalizeUserName, USER_NAME_MAX } from "@/lib/username";
 
 const NAME_ERROR = `名前は1〜${USER_NAME_MAX}文字で入力してください`;
@@ -14,7 +15,7 @@ export async function GET() {
   return Response.json({ session: { isMinor: session.isMinor, name: session.name }, usage, played });
 }
 
-const Body = z.object({ birthYear: z.number().int(), birthMonth: z.number().int(), name: z.string().max(64) });
+const Body = z.object({ birthYear: z.number().int(), birthMonth: z.number().int(), name: z.string().max(64), ref: z.string().max(64).optional() });
 
 /** 年齢確認。生まれた年月と、物語の中で呼ばれる名前を受け取って、匿名のセッションを作る */
 export async function POST(req: Request) {
@@ -28,8 +29,9 @@ export async function POST(req: Request) {
   if (ageFrom(birthYear, birthMonth) < MIN_AGE) {
     return Response.json({ error: `このサービスは${MIN_AGE}歳以上の方が対象です` }, { status: 403 });
   }
-  const session = await createSession(birthYear, birthMonth, name);
-  await logEvent(session.id, "session_start", { isMinor: session.isMinor });
+  const ref = normalizeRef(parsed.data.ref);
+  const session = await createSession(birthYear, birthMonth, name, ref);
+  await logEvent(session.id, "session_start", { isMinor: session.isMinor, ref });
   return Response.json({ session: { isMinor: session.isMinor, name: session.name } });
 }
 

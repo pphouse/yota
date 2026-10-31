@@ -48,10 +48,31 @@ const SCHEMA = [
     props TEXT NOT NULL DEFAULT '{}',
     created_at INTEGER NOT NULL
   )`,
+  // ユーザーからの声。rating は会話のあとのひとこと評価、note はホームから送るご意見
+  `CREATE TABLE IF NOT EXISTS feedback (
+    id TEXT PRIMARY KEY,
+    session_id TEXT,
+    kind TEXT NOT NULL,
+    plot_id TEXT,
+    conversation_id TEXT,
+    score INTEGER,
+    compare TEXT,
+    category TEXT,
+    text TEXT NOT NULL DEFAULT '',
+    contact TEXT NOT NULL DEFAULT '',
+    turns INTEGER,
+    ref TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at)`,
 ];
 
 // あとから足した列。作成済みのDBにも足す（すでにあればエラーになるので無視する）
-const MIGRATIONS = [`ALTER TABLE sessions ADD COLUMN name TEXT NOT NULL DEFAULT ''`];
+const MIGRATIONS = [
+  `ALTER TABLE sessions ADD COLUMN name TEXT NOT NULL DEFAULT ''`,
+  // どこから来た人か（募集の投稿のリンクに付けた ?ref=）
+  `ALTER TABLE sessions ADD COLUMN ref TEXT NOT NULL DEFAULT ''`,
+];
 
 let client: Client | undefined;
 let ready: Promise<void> | undefined;

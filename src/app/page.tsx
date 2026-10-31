@@ -1,4 +1,5 @@
 import { Featured } from "@/components/Featured";
+import { FeedbackSheet } from "@/components/FeedbackSheet";
 import { ForYou } from "@/components/ForYou";
 import { Logo } from "@/components/Logo";
 import { PlotList } from "@/components/PlotList";
@@ -22,6 +23,9 @@ export default function Home() {
       <Shelf title="学園もの" plots={PLOTS.filter((p) => p.tags.includes("大学"))} />
       <PlotList plots={PLOTS} />
       <footer className="mt-14 px-5 text-xs leading-6 text-mist/80">
+        <p className="mb-3 text-[0.8rem]">
+          yota はまだつくりはじめたばかりです。感想をいただけるとうれしいです。 <FeedbackSheet />
+        </p>
         登場人物はすべて架空の18歳以上の人物です。返答はAIが生成しています。
       </footer>
     </main>

@@ -4,6 +4,7 @@ import "@fontsource/noto-sans-jp/500.css";
 import "@fontsource/noto-sans-jp/700.css";
 import "@fontsource/noto-sans-jp/900.css";
 import "./globals.css";
+import { RefCapture } from "@/components/RefCapture";
 
 export const metadata: Metadata = {
   title: "yota｜キャラと話して進める恋愛ストーリー",
@@ -23,7 +24,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ja" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <RefCapture />
+        {children}
+      </body>
     </html>
   );
 }

@@ -6,6 +6,7 @@ import { AvatarStack } from "@/components/Avatar";
 import { ChevronDownIcon } from "@/components/icons";
 import type { Plot } from "@/lib/characters";
 import { api } from "@/lib/client";
+import { storedRef } from "@/lib/ref";
 import { USER_NAME_MAX } from "@/lib/username";
 
 /**
@@ -26,7 +27,7 @@ export function AgeGate({ plot, nameOnly = false, onDone }: { plot: Plot; nameOn
     setError(null);
     const res = await api<{ session?: { isMinor: boolean }; error?: string }>("/api/session", {
       method: nameOnly ? "PATCH" : "POST",
-      body: JSON.stringify(nameOnly ? { name } : { name, birthYear: Number(year), birthMonth: Number(month) }),
+      body: JSON.stringify(nameOnly ? { name } : { name, birthYear: Number(year), birthMonth: Number(month), ref: storedRef() }),
     });
     setBusy(false);
     if (!res.ok || !res.data.session) {

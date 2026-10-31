@@ -140,6 +140,46 @@ export async function setSummary(conversationId: string, summary: string, summar
   await run("UPDATE conversations SET summary = ?, summarized_count = ? WHERE id = ?", [summary, summarizedCount, conversationId]);
 }
 
+export type FeedbackInput = {
+  sessionId: string | null;
+  kind: "rating" | "note";
+  plotId?: string | null;
+  conversationId?: string | null;
+  score?: number | null;
+  compare?: string | null;
+  category?: string | null;
+  text?: string;
+  contact?: string;
+  turns?: number | null;
+  ref?: string;
+};
+
+/** ユーザーからの声を保存する。同じ会話の評価は、送り直したら新しいものに置き換える */
+export async function addFeedback(f: FeedbackInput): Promise<void> {
+  if (f.kind === "rating" && f.conversationId) {
+    await run("DELETE FROM feedback WHERE kind = 'rating' AND conversation_id = ?", [f.conversationId]);
+  }
+  await run(
+    `INSERT INTO feedback (id, session_id, kind, plot_id, conversation_id, score, compare, category, text, contact, turns, ref, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      crypto.randomUUID(),
+      f.sessionId,
+      f.kind,
+      f.plotId ?? null,
+      f.conversationId ?? null,
+      f.score ?? null,
+      f.compare ?? null,
+      f.category ?? null,
+      f.text ?? "",
+      f.contact ?? "",
+      f.turns ?? null,
+      f.ref ?? "",
+      Date.now(),
+    ],
+  );
+}
+
 export async function logEvent(sessionId: string | null, type: string, props: Record<string, unknown> = {}): Promise<void> {
   await run("INSERT INTO events (session_id, type, props, created_at) VALUES (?, ?, ?, ?)", [
     sessionId,

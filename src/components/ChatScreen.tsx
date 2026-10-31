@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AgeGate } from "@/components/AgeGate";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 import { SceneCard } from "@/components/SceneCard";
 import { AvatarStack } from "@/components/Avatar";
 import { BackIcon, CardIcon, PenIcon, RestartIcon, RetryIcon, SendIcon } from "@/components/icons";
 import { AssistantMessage, SceneNarration, UserMessage } from "@/components/StoryMessage";
-import { getPlot, VIEWPOINT_LABEL, type Viewpoint } from "@/lib/characters";
+import { callName, getPlot, VIEWPOINT_LABEL, type Viewpoint } from "@/lib/characters";
 import { api, readEvents, track } from "@/lib/client";
+import { RATING_AFTER_TURNS } from "@/lib/feedback";
 import { Typewriter } from "@/lib/typewriter";
 import { nameInProse } from "@/lib/username";
 
@@ -466,6 +468,13 @@ export function ChatScreen() {
               </li>
             ))}
           </ol>
+          {phase === "ready" &&
+            conversationId &&
+            !busy &&
+            last?.role === "assistant" &&
+            messages.filter((m) => m.role === "user").length >= RATING_AFTER_TURNS && (
+              <FeedbackPrompt conversationId={conversationId} names={plot.personas.map(callName).join("と")} />
+            )}
           {last?.role === "user" && !busy && phase === "ready" && (
             <button onClick={regenerate} className={`${subPill} mt-4`}>
               <RetryIcon size={15} />
