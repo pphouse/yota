@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "feedback": "jiti scripts/feedback.mts"
+    "feedback": "jiti scripts/feedback.mts",
+    "ugc": "jiti scripts/ugc.mts"
   },
   "dependencies": {
     "@fontsource/noto-sans-jp": "^5.3.1",

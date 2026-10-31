@@ -65,6 +65,20 @@ const SCHEMA = [
     created_at INTEGER NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS idx_feedback_created ON feedback(created_at)`,
+  // ユーザーが作った作品。data は作品の中身（JSON）、jacket はジャケットの画像（webp）
+  `CREATE TABLE IF NOT EXISTS user_plots (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    author TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'private',
+    data TEXT NOT NULL,
+    jacket BLOB,
+    jacket_status TEXT NOT NULL DEFAULT 'none',
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_user_plots_status ON user_plots(status, updated_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_user_plots_session ON user_plots(session_id, updated_at)`,
 ];
 
 // あとから足した列。作成済みのDBにも足す（すでにあればエラーになるので無視する）

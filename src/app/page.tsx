@@ -4,8 +4,11 @@ import { ForYou } from "@/components/ForYou";
 import { Logo } from "@/components/Logo";
 import { PlotList } from "@/components/PlotList";
 import { Shelf } from "@/components/Shelf";
+import { UgcShelves } from "@/components/UgcShelves";
 import { UserName } from "@/components/UserName";
 import { PLOTS } from "@/lib/characters";
+import Link from "next/link";
+import { PenIcon } from "@/components/icons";
 
 export default function Home() {
   return (
@@ -15,11 +18,18 @@ export default function Home() {
           <h1>
             <Logo className="h-[34px] w-auto text-paper" />
           </h1>
-          <UserName />
+          <div className="flex items-center gap-2">
+            <Link href="/create" className="press flex items-center gap-1 rounded-full bg-brand-grad px-3 py-1.5 text-[0.75rem] font-bold text-white">
+              <PenIcon size={13} />
+              つくる
+            </Link>
+            <UserName />
+          </div>
         </div>
       </header>
       <Featured plots={PLOTS.filter((p) => p.featured)} />
       <ForYou />
+      <UgcShelves />
       <Shelf title="学園もの" plots={PLOTS.filter((p) => p.tags.includes("大学"))} />
       <PlotList plots={PLOTS} />
       <footer className="mt-14 px-5 text-xs leading-6 text-mist/80">

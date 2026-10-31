@@ -24,6 +24,7 @@ export const NOTE_CATEGORIES = {
   bug: "不具合",
   request: "要望",
   other: "その他",
+  report: "通報",
 } as const;
 export type NoteCategory = keyof typeof NOTE_CATEGORIES;
 

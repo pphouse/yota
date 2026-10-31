@@ -4,8 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { MbtiChip, NewBadge } from "@/components/Badges";
+import { TextJacket } from "@/components/TextJacket";
 import { GENRES, type Genre, type Plot, type Viewpoint } from "@/lib/characters";
 import { track } from "@/lib/client";
+import { plotPath } from "@/lib/ugc-schema";
 
 const TABS: { id: Viewpoint; label: string; hint: string }[] = [
   { id: "self", label: "あなたが主人公", hint: "あなたも登場人物になって、キャラと話します" },
@@ -19,13 +21,31 @@ type Filter = { kind: "genre"; id: Genre } | { kind: "tag"; tag: string } | null
  * 作品のカード。タイトル文字入りのジャケットをそのまま見せ、その下にタイトル・キャッチコピー・ハッシュタグを置く。
  * note を渡すと、キャッチコピーの代わりに出す（「〜を遊んだあなたに」など）
  */
-export function PlotCard({ plot, viewpoint, onTag, note }: { plot: Plot; viewpoint?: Viewpoint; onTag?: (tag: string) => void; note?: string }) {
+export function PlotCard({
+  plot,
+  viewpoint,
+  onTag,
+  note,
+  author,
+}: {
+  plot: Plot;
+  viewpoint?: Viewpoint;
+  onTag?: (tag: string) => void;
+  note?: string;
+  /** ユーザーが作った作品の作者名 */
+  author?: string;
+}) {
+  const image = plot.jacket ?? plot.cover;
+  const href = viewpoint ? `${plotPath(plot.id)}?v=${viewpoint}` : plotPath(plot.id);
   return (
     <div>
-      <Link href={viewpoint ? `/plot/${plot.id}?v=${viewpoint}` : `/plot/${plot.id}`} className="press block" aria-label={`${plot.title}　${plot.catchphrase}`}>
+      <Link href={href} className="press block" aria-label={`${plot.title}　${plot.catchphrase}`}>
         <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-night-2">
-          {(plot.jacket ?? plot.cover) && (
-            <Image src={(plot.jacket ?? plot.cover)!} alt="" fill sizes="(min-width: 576px) 270px, 46vw" className="object-cover object-top" />
+          {image ? (
+            // ユーザーの作品のジャケットは API から返すので、Next の画像の最適化を通さない
+            <Image src={image} alt="" fill sizes="(min-width: 576px) 270px, 46vw" unoptimized={image.startsWith("/api/")} className="object-cover object-top" />
+          ) : (
+            <TextJacket plot={plot} />
           )}
           <div className="absolute inset-x-2 bottom-2 flex items-end justify-between gap-1">
             <MbtiChip personas={plot.personas} />
@@ -35,6 +55,7 @@ export function PlotCard({ plot, viewpoint, onTag, note }: { plot: Plot; viewpoi
         <h3 className="break-phrase mt-2 line-clamp-2 px-0.5 text-[0.95rem] font-black leading-snug">{plot.title}</h3>
       </Link>
       <p className={`break-phrase mt-1 line-clamp-2 px-0.5 text-[0.75rem] leading-5 ${note ? "font-bold text-brand" : "text-mist"}`}>{note ?? plot.catchphrase}</p>
+      {author && <p className="mt-0.5 truncate px-0.5 text-[0.7rem] text-mist/80">作：{author}</p>}
       {onTag && (
         <ul className="mt-1.5 flex flex-wrap gap-1 px-0.5">
           {plot.tags.map((t) => (

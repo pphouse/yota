@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { getPlot, type Viewpoint } from "@/lib/characters";
+import type { Viewpoint } from "@/lib/characters";
 import { getSession } from "@/lib/session";
 import { addMessage, createConversation, getLatestConversation, listMessages, logEvent } from "@/lib/store";
+import { resolvePlot } from "@/lib/ugc";
 import { nameInNarration } from "@/lib/username";
 
 const ViewpointSchema = z.enum(["self", "watch"]);
@@ -11,7 +12,7 @@ export async function GET(req: Request) {
   const session = await getSession();
   if (!session) return Response.json({ error: "年齢の確認が必要です" }, { status: 401 });
   const url = new URL(req.url);
-  const plot = getPlot(url.searchParams.get("plotId") ?? "");
+  const plot = await resolvePlot(url.searchParams.get("plotId") ?? "");
   const viewpoint = ViewpointSchema.safeParse(url.searchParams.get("viewpoint"));
   if (!plot || !viewpoint.success || !plot.viewpoints.includes(viewpoint.data)) {
     return Response.json({ error: "作品が見つかりません" }, { status: 404 });
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return Response.json({ error: "年齢の確認が必要です" }, { status: 401 });
   const parsed = Body.safeParse(await req.json().catch(() => null));
-  const plot = parsed.success ? getPlot(parsed.data.plotId) : undefined;
+  const plot = parsed.success ? await resolvePlot(parsed.data.plotId) : undefined;
   if (!parsed.success || !plot || !plot.viewpoints.includes(parsed.data.viewpoint)) {
     return Response.json({ error: "作品が見つかりません" }, { status: 404 });
   }

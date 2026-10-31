@@ -6,10 +6,17 @@ import { api } from "@/lib/client";
 import { NOTE_CATEGORIES, type NoteCategory } from "@/lib/feedback";
 import { storedRef } from "@/lib/ref";
 
-/** ホームの下の「ご意見・不具合を送る」。感想・不具合・要望を、いつでも送れる */
-export function FeedbackSheet() {
+/**
+ * ホームの下の「ご意見・不具合を送る」。感想・不具合・要望を、いつでも送れる。
+ * ユーザーの作品のページでは「通報」として使う（context に作品のIDを入れて送る）
+ */
+export function FeedbackSheet({
+  label = "ご意見・不具合を送る",
+  defaultCategory = "impression",
+  context,
+}: { label?: string; defaultCategory?: NoteCategory; context?: string } = {}) {
   const [open, setOpen] = useState(false);
-  const [category, setCategory] = useState<NoteCategory>("impression");
+  const [category, setCategory] = useState<NoteCategory>(defaultCategory);
   const [text, setText] = useState("");
   const [contact, setContact] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -19,7 +26,7 @@ export function FeedbackSheet() {
     setState("sending");
     const r = await api("/api/feedback", {
       method: "POST",
-      body: JSON.stringify({ kind: "note", category, text, ...(contact.trim() ? { contact } : {}), ref: storedRef() }),
+      body: JSON.stringify({ kind: "note", category, text: context ? `${text}\n（${context}）` : text, ...(contact.trim() ? { contact } : {}), ref: storedRef() }),
     });
     if (!r.ok) return setState("error");
     setState("sent");
@@ -35,7 +42,7 @@ export function FeedbackSheet() {
   return (
     <>
       <button onClick={() => setOpen(true)} className="press font-bold text-paper/90 underline underline-offset-4">
-        ご意見・不具合を送る
+        {label}
       </button>
       {open &&
         createPortal(
@@ -55,7 +62,7 @@ export function FeedbackSheet() {
                 </>
               ) : (
                 <>
-                  <p className="text-base font-bold">ご意見・不具合を送る</p>
+                  <p className="text-base font-bold">{label}</p>
                   <div role="radiogroup" aria-label="種類" className="mt-4 flex flex-wrap gap-1.5">
                     {(Object.keys(NOTE_CATEGORIES) as NoteCategory[]).map((c) => (
                       <button
@@ -78,7 +85,13 @@ export function FeedbackSheet() {
                     maxLength={1000}
                     rows={5}
                     aria-label="内容"
-                    placeholder={category === "bug" ? "どの作品で、何をしたら、どうなったか" : "好きなキャラ、ほしい作品、気になったところなど"}
+                    placeholder={
+                      category === "bug"
+                        ? "どの作品で、何をしたら、どうなったか"
+                        : category === "report"
+                          ? "問題だと思った点（未成年を思わせる設定、実在の人物、他の作品のキャラ、性的な内容など）"
+                          : "好きなキャラ、ほしい作品、気になったところなど"
+                    }
                     className="mt-3 w-full rounded-2xl bg-night-3 px-4 py-3 text-sm leading-6 placeholder:text-mist/70 focus:outline-none focus:ring-2 focus:ring-brand/70"
                   />
                   <label className="mt-3 block text-xs font-bold text-mist">

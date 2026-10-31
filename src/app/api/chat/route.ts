@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { z } from "zod";
 import { runTurn, type ChatEvent } from "@/lib/chat";
-import { getPlot } from "@/lib/characters";
+import { resolvePlot } from "@/lib/ugc";
 import { query } from "@/lib/db";
 import { getProvider } from "@/lib/llm";
 import { maybeSummarize } from "@/lib/memory";
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "リクエストが正しくありません" }, { status: 400 });
   const conv = await getConversation(parsed.data.conversationId, session.id);
-  const plot = conv ? getPlot(conv.plotId) : undefined;
+  const plot = conv ? await resolvePlot(conv.plotId) : undefined;
   if (!conv || !plot) return Response.json({ error: "会話が見つかりません" }, { status: 404 });
 
   // 連打やボットによる費用の暴走を防ぐ（1分あたりの送信数）

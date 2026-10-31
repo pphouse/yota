@@ -10,10 +10,11 @@ import { SceneCard } from "@/components/SceneCard";
 import { AvatarStack } from "@/components/Avatar";
 import { BackIcon, CardIcon, PenIcon, RestartIcon, RetryIcon, SendIcon } from "@/components/icons";
 import { AssistantMessage, SceneNarration, UserMessage } from "@/components/StoryMessage";
-import { callName, getPlot, VIEWPOINT_LABEL, type Viewpoint } from "@/lib/characters";
+import { callName, getPlot, VIEWPOINT_LABEL, type Plot, type Viewpoint } from "@/lib/characters";
 import { api, readEvents, track } from "@/lib/client";
 import { RATING_AFTER_TURNS } from "@/lib/feedback";
 import { Typewriter } from "@/lib/typewriter";
+import { plotPath } from "@/lib/ugc-schema";
 import { nameInProse } from "@/lib/username";
 
 type UIMessage = {
@@ -54,7 +55,21 @@ export function ChatScreen() {
   const params = useParams<{ plotId: string }>();
   const search = useSearchParams();
   const router = useRouter();
-  const plot = getPlot(params.plotId);
+  // こちらの作品はそのまま、ユーザーが作った作品はサーバーから取ってくる
+  const official = getPlot(params.plotId);
+  const [fetched, setFetched] = useState<{ id: string; plot: Plot | null } | null>(null);
+  useEffect(() => {
+    if (official) return;
+    let alive = true;
+    void api<{ plot?: Plot }>(`/api/plots/${encodeURIComponent(params.plotId)}`).then((r) => {
+      if (alive) setFetched({ id: params.plotId, plot: r.ok && r.data.plot ? r.data.plot : null });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [official, params.plotId]);
+  const plot = official ?? (fetched?.id === params.plotId ? (fetched.plot ?? undefined) : undefined);
+  const plotLoading = !official && fetched?.id !== params.plotId;
   const requested = search.get("v") as Viewpoint | null;
   const viewpoint: Viewpoint | undefined =
     plot && requested && plot.viewpoints.includes(requested) ? requested : plot?.viewpoints[0];
@@ -313,6 +328,7 @@ export function ChatScreen() {
     send(input);
   }
 
+  if (plotLoading) return <p className="mx-auto max-w-xl px-5 py-16 text-sm text-mist">読み込み中…</p>;
   if (!plot || !viewpoint) {
     return (
       <main className="mx-auto max-w-xl px-5 py-16">
@@ -357,7 +373,7 @@ export function ChatScreen() {
           <AvatarStack personas={plot.personas} size={36} />
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-[1rem] font-bold leading-tight">
-              <Link href={`/plot/${plot.id}`} className="hover:underline">
+              <Link href={plotPath(plot.id)} className="hover:underline">
                 {plot.title}
               </Link>
             </h1>
