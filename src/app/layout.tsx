@@ -7,6 +7,8 @@ import "./globals.css";
 import { RefCapture } from "@/components/RefCapture";
 
 export const metadata: Metadata = {
+  // 共有したときのカードなどで使う、本番の URL
+  metadataBase: new URL("https://yotachat.app"),
   title: "yota｜キャラと話して進める恋愛ストーリー",
   description: "キャラクターと会話しながら物語を進めるチャットノベル。登録なし・広告なしで遊べます。",
   applicationName: "yota",

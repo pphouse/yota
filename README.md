@@ -76,6 +76,8 @@ Anthropic と Gemini の実際のAPIでの動作確認はまだしていませ�
 2. Vercel はファイルに書き込めないため、[Turso](https://turso.tech) などで libSQL のDBを作り、`DATABASE_URL` と `DATABASE_AUTH_TOKEN` を設定する。Vercel の Marketplace から Turso を入れた場合は `TURSO_DATABASE_URL` と `TURSO_AUTH_TOKEN` が自動で入り、そのまま読みます。テーブルは初回アクセス時に自動で作られます。
 3. 文章AIの設定（上の「今使っている設定」の5つ）を環境変数に入れる。
 
+本番の URL は **https://yotachat.app**（Vercel で購入。自動更新あり、毎年 $15）。`www.yotachat.app` と、もとの `yota-bice.vercel.app` は、どちらも yotachat.app に転送する（308）。
+
 ## 構成
 
 ```

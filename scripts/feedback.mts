@@ -19,7 +19,7 @@ const opt = (name: string) => {
 // モニター用のリンク：推測されにくい6文字の英数字を付ける（他人のコードで謝礼を受け取られないように）
 const makeMonitors = Number(opt("make-monitors") ?? 0);
 if (makeMonitors > 0) {
-  const base = opt("base") ?? "https://yota-bice.vercel.app";
+  const base = opt("base") ?? "https://yotachat.app";
   const chars = "abcdefghjkmnpqrstuvwxyz23456789";
   const seen = new Set<string>();
   while (seen.size < makeMonitors) {
