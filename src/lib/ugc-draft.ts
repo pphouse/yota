@@ -85,17 +85,26 @@ export function extractJson(text: string): unknown {
   }
 }
 
-export type DraftResult = { ok: true; input: PlotInput } | { ok: false; error: string; problems?: CreationProblem[] };
+export type DraftResult = { ok: true; input: PlotInput; notes?: string[] } | { ok: false; error: string; problems?: CreationProblem[] };
 
-/** 下書きを作る。形が崩れていたり、安全判定に引っかかったりしたら、理由を添えて1回だけ作り直させる */
-export async function draftPlot(provider: LLMProvider, idea: string, viewpoint: Viewpoint): Promise<DraftResult> {
-  const messages: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: `アイデア：${idea}` }];
+/**
+ * 作品の JSON を文章AIに書かせる共通の手順。
+ * 形が崩れていたり、安全判定に引っかかったりしたら、理由を添えて1回だけ作り直させる。
+ * refuse を返されたら（版権ものなど）、その理由で断る。
+ */
+export async function generatePlot(
+  provider: LLMProvider,
+  opts: { system: string; request: string; retry: string; unsafeError: string },
+): Promise<DraftResult> {
+  const messages: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: opts.request }];
   let last: DraftResult = { ok: false, error: "下書きを作れませんでした" };
   for (let attempt = 0; attempt < 2; attempt++) {
-    const out = await generateText(provider, { system: system(viewpoint), messages, tier: "quality", maxTokens: 4000 });
+    const out = await generateText(provider, { system: opts.system, messages, tier: "quality", maxTokens: 4000 });
     let fix = "";
     try {
-      const parsed = PlotInput.safeParse(extractJson(out));
+      const json = extractJson(out) as Record<string, unknown>;
+      if (typeof json?.refuse === "string" && json.refuse.trim()) return { ok: false, error: json.refuse.trim().slice(0, 200) };
+      const parsed = PlotInput.safeParse(json);
       if (!parsed.success) {
         fix = `形が正しくありません：${parsed.error.issues
           .slice(0, 5)
@@ -104,14 +113,25 @@ export async function draftPlot(provider: LLMProvider, idea: string, viewpoint: 
       } else {
         const input = sanitize(parsed.data);
         const problems = checkCreation(input);
-        if (problems.length === 0) return { ok: true, input };
+        const notes = Array.isArray(json.notes) ? json.notes.filter((n): n is string => typeof n === "string" && n.trim() !== "").slice(0, 5) : [];
+        if (problems.length === 0) return { ok: true, input, ...(notes.length ? { notes } : {}) };
         fix = "未成年を思わせる言葉や、性的な言葉が入っています。登場人物は全員20歳以上・大学以上にし、性的な言葉を使わずに書き直してください。";
-        last = { ok: false, error: "アイデアの内容では作れませんでした。表現を変えてもう一度お試しください。", problems };
+        last = { ok: false, error: opts.unsafeError, problems };
       }
     } catch {
       fix = "JSON として読めませんでした。";
     }
-    messages.push({ role: "assistant", content: out.slice(0, 6000) }, { role: "user", content: `${fix}\n同じアイデアで、例と同じ形の JSON だけを出力し直してください。` });
+    messages.push({ role: "assistant", content: out.slice(0, 6000) }, { role: "user", content: `${fix}\n${opts.retry}` });
   }
   return last;
+}
+
+/** 一行のアイデアから下書きを作る */
+export async function draftPlot(provider: LLMProvider, idea: string, viewpoint: Viewpoint): Promise<DraftResult> {
+  return generatePlot(provider, {
+    system: system(viewpoint),
+    request: `アイデア：${idea}`,
+    retry: "同じアイデアで、例と同じ形の JSON だけを出力し直してください。",
+    unsafeError: "アイデアの内容では作れませんでした。表現を変えてもう一度お試しください。",
+  });
 }
