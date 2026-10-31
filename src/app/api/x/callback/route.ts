@@ -56,7 +56,7 @@ export async function GET(req: Request) {
     // 投稿は、この処理の中でだけ使い、保存しない
     after(async () => {
       try {
-        const r = await analyzeX(getProvider(), profile, posts);
+        const r = await analyzeX(getProvider({ sessionId: session.id, purpose: "x_analyze" }), profile, posts);
         if (!r.ok) return finishXResult(id, "failed", { name: profile.name }, r.error);
         const withJacket = jacketEnabled();
         const plotId = await createUgc(session.id, session.name || profile.name.slice(0, 12) || "名無し", r.analysis.plot, withJacket ? "pending" : "none");

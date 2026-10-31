@@ -11,6 +11,9 @@ export class MockProvider implements LLMProvider {
 
   async *stream(req: GenerateRequest): AsyncIterable<string> {
     const text = req.purpose === "summary" ? summarize(req) : req.purpose === "suggest" ? suggest(req) : reply(req);
+    // 原価の記録を手元でも試せるよう、文字数からおおよそのトークン数を報告する（model は "mock"）
+    const inputChars = req.system.length + req.messages.reduce((n, m) => n + m.content.length, 0);
+    req.onUsage?.({ model: "mock", inputTokens: inputChars, outputTokens: text.length });
     for (let i = 0; i < text.length; i += 3) {
       if (req.signal?.aborted) return;
       if (i > 0 && this.delayMs > 0) await sleep(this.delayMs);
