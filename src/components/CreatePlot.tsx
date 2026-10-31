@@ -383,7 +383,7 @@ export function CreatePlot() {
                     <TextJacket plot={preview} />
                   </div>
                   <p className="text-[0.75rem] leading-5 text-mist">
-                    完成すると、題名とキャラに合わせたジャケットの絵を作ります。キャラの画像を登録すると、文字のジャケットの背景にも使います。
+                    ジャケットの見本です。登場人物に画像を登録すると、背景に使います。
                   </p>
                 </div>
                 <TextField id={fieldId("title")} label="題名" required max={30} value={draft.title} onChange={(v) => set({ title: v })} ai="title" hint="短く、引っかかる一言に" />
