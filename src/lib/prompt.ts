@@ -1,4 +1,4 @@
-import { callName, pronouns, type Plot, type Viewpoint } from "./characters";
+import { callName, pronouns, STAT_LABELS, type Plot, type StatKey, type Viewpoint } from "./characters";
 import type { ChatMessage } from "./llm";
 
 export type PromptContext = {
@@ -11,6 +11,47 @@ export type PromptContext = {
   /** ユーザーが決めた名前（当事者視点で、地の文と呼びかけに使う）。未設定なら空 */
   userName?: string;
 };
+
+/**
+ * 性格パラメーター（0〜100）を、返答での振る舞いに直す。数字のまま渡すと台詞で口に出すことがあるので、文章にする。
+ * 70以上は強く出る傾向、30以下は弱い傾向として書き、その間は書かない（性格と口調の指定に任せる）。
+ */
+const STAT_GUIDE: Record<StatKey, { high: string; low: string }> = {
+  sweet: {
+    high: "好意や気づかいを、言葉や行動ではっきり示す",
+    low: "甘い言葉はほとんど言わない。気づかいは、さりげない行動でだけ見せる",
+  },
+  devoted: {
+    high: "相手のことをよく見ていて、前に聞いた話や小さな変化を覚えていて、さりげなく触れる",
+    low: "相手に深入りせず、こだわる様子は見せない",
+  },
+  possessive: {
+    high: "相手がほかの人の話をすると、少しむっとしたり、話を自分のほうへ戻したりする（責める・行動を縛る・脅すことはしない）",
+    low: "相手の交友関係には口を出さず、おおらかに受け止める",
+  },
+  warmth: {
+    high: "相手の弱さや失敗を責めずに受け止め、安心させる言葉をかける",
+    low: "なぐさめるのは不器用で、そっけない言い方になりがち。それでも相手を見捨てない",
+  },
+  tsundere: {
+    high: "素直になれず、好意や心配をそっけない言葉や皮肉でごまかす。ただし行動は優しく、ふとした瞬間に本音がこぼれる",
+    low: "思ったことを素直に口にする。照れ隠しの皮肉は言わない",
+  },
+  mystery: {
+    high: "自分のことは多くを語らず、意味深な一言やはぐらかしで、相手の興味を引く",
+    low: "隠しごとをせず、聞かれたことには率直に答える",
+  },
+};
+
+export function describeStats(stats: Record<StatKey, number>): string[] {
+  return (Object.keys(STAT_LABELS) as StatKey[]).flatMap((k) => {
+    const v = stats[k];
+    if (v >= 90) return [`${STAT_GUIDE[k].high}（特に強い）`];
+    if (v >= 70) return [STAT_GUIDE[k].high];
+    if (v <= 30) return [STAT_GUIDE[k].low];
+    return [];
+  });
+}
 
 /** 山場を必ず起こす往復数。体験設計「3往復で山場」に対応。 */
 export const HOOK_DEADLINE_TURNS = 3;
@@ -33,6 +74,9 @@ export function buildSystemPrompt(ctx: PromptContext): string {
           ? [`  好き：${(p.likes ?? []).join("、") || "なし"}／嫌い：${(p.dislikes ?? []).join("、") || "なし"}`]
           : []),
         ...(p.habits?.length ? [`  口癖：${p.habits.map((h) => `「${h}」`).join("")}（ときどき出る。毎回は使わない）`] : []),
+        ...(p.stats && describeStats(p.stats).length
+          ? ["  性格の傾向（口調と性格の指定の範囲で、返答にはっきり出す）：", ...describeStats(p.stats).map((line) => `    ・${line}`)]
+          : []),
         ...(p.topics?.length ? [`  話の引き出し：${p.topics.join("／")}`] : []),
         ...(p.inLove ? [`  好きになったら：${p.inLove}（関係がはっきり深まってから、少しずつ見せる。最初から出さない）`] : []),
       ].join("\n"),

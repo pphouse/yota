@@ -124,6 +124,7 @@ function Profile({ persona: p }: { persona: Persona }) {
         <div className="mt-4">
           <p className="text-[0.72rem] font-bold text-mist">性格パラメーター</p>
           <StatRadar persona={p} />
+          <p className="mt-1 text-center text-[0.7rem] text-mist/80">会話でのふるまいにも反映されます</p>
         </div>
       )}
       <dl className="mt-4 space-y-3">

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getPlot } from "./characters";
-import { buildSystemPrompt, toApiMessages } from "./prompt";
+import { buildSystemPrompt, describeStats, toApiMessages } from "./prompt";
 
 const solo = getPlot("midnight-barista")!;
 const duo = getPlot("manzai-roommates")!;
@@ -40,6 +40,24 @@ describe("buildSystemPrompt", () => {
     const p = buildSystemPrompt({ plot: getPlot("lab-ten-years")!, viewpoint: "watch", isMinor: false, summary: "", userTurns: 1 });
     expect(p).toContain("- 律：一人称は「僕」、相手は必ず「先輩」と呼ぶ（ほかの呼び方はしない）、です・ます で話す（崩さない）");
     expect(p).toContain("- 早瀬：一人称は「俺」、です・ます は使わない");
+  });
+
+  it("性格パラメーターの強い・弱い項目を、数字ではなく振る舞いの指示にして載せる", () => {
+    const plot = getPlot("puppy-junior")!; // 甘さ90・一途95・ツンデレ10・ミステリアス15
+    const system = buildSystemPrompt({ plot, viewpoint: "self", isMinor: false, summary: "", userTurns: 1 });
+    expect(system).toContain("性格の傾向");
+    expect(system).toContain("好意や気づかいを、言葉や行動ではっきり示す（特に強い）");
+    expect(system).toContain("照れ隠しの皮肉は言わない");
+    // 中くらいの項目（独占欲55・包容力55）は書かない。数字も載せない
+    expect(system).not.toContain("少しむっとしたり");
+    expect(system).not.toMatch(/甘さ\s*\d|独占欲\s*\d/);
+  });
+
+  it("独占欲が強いキャラにも、責める・縛る・脅すことはしないと添える", () => {
+    expect(describeStats({ sweet: 50, devoted: 50, possessive: 85, warmth: 50, tsundere: 50, mystery: 50 })).toEqual([
+      expect.stringContaining("責める・行動を縛る・脅すことはしない"),
+    ]);
+    expect(describeStats({ sweet: 50, devoted: 50, possessive: 50, warmth: 50, tsundere: 50, mystery: 50 })).toEqual([]);
   });
 
   it("未成年には恋愛表現の制限を追加する", () => {
