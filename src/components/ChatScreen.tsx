@@ -15,7 +15,7 @@ import { api, readEvents, track } from "@/lib/client";
 import { RATING_AFTER_TURNS } from "@/lib/feedback";
 import { Typewriter } from "@/lib/typewriter";
 import { plotPath } from "@/lib/ugc-schema";
-import { nameInProse } from "@/lib/username";
+import { fillUser, nameInProse } from "@/lib/username";
 
 type UIMessage = {
   key: string;
@@ -141,10 +141,11 @@ export function ChatScreen() {
     if (stickRef.current) window.scrollTo({ top: document.documentElement.scrollHeight });
   }, [messages]);
 
-  // キャラが返すたびに、次の返事の候補を作ってもらう（最初の一言には作品ごとの候補を使う）。
+  // キャラが返すたびに、次の返事の候補を作ってもらう（最初の一言には作品ごとの候補を使う。作品に候補がなければ作ってもらう）。
   // 受け取りが終わった時点で頼むので、文章を見せ終える頃には届いている
+  const hasStarters = Boolean(plot && viewpoint && plot.starterReplies[viewpoint]?.length);
   useEffect(() => {
-    if (phase !== "ready" || turn === "receiving" || !conversationId || messages.length < 2) return;
+    if (phase !== "ready" || turn === "receiving" || !conversationId || messages.length === 0 || (messages.length === 1 && hasStarters)) return;
     const lastMsg = messages[messages.length - 1];
     if (lastMsg.role !== "assistant" || !lastMsg.id || lastMsg.flagged) return;
     if (suggestRequested.current === lastMsg.id) return;
@@ -158,7 +159,7 @@ export function ChatScreen() {
       lastSuggestions.current = [...r.data.suggestions, ...lastSuggestions.current].slice(0, 6);
       setSuggestions({ forId, items: r.data.suggestions });
     });
-  }, [phase, turn, conversationId, messages]);
+  }, [phase, turn, conversationId, messages, hasStarters]);
 
   async function stream(body: { message?: string; regenerate?: boolean }, optimisticUser?: UIMessage) {
     if (!conversationId) return;
@@ -346,7 +347,7 @@ export function ChatScreen() {
   // 返事の候補：最初の一言には作品ごとの候補、そのあとはキャラが返すたびに作った候補
   const chips =
     turn === "idle" && last?.role === "assistant" && !last.streaming
-      ? opening
+      ? opening && hasStarters
         ? plot.starterReplies[viewpoint] ?? []
         : suggestions && suggestions.forId === last.id
           ? suggestions.items
@@ -418,10 +419,12 @@ export function ChatScreen() {
       ) : (
         <main className="mx-auto w-full max-w-xl flex-1 px-4 pb-6 pt-5">
           {phase === "loading" && <p className="py-10 text-center text-sm text-mist">読み込み中…</p>}
-          {phase === "ready" && (
-            // プロローグ：作品の舞台を、物語の入口としてナレーションで見せる
+          {phase === "ready" && (plot.prologue ?? plot.setting) && (
+            // プロローグ：作品の舞台を、物語の入口としてナレーションで見せる（{{user}} は名前にする）
             <div className="mb-6">
-              <SceneNarration text={viewpoint === "self" ? nameInProse(plot.prologue ?? plot.setting, userName) : (plot.prologue ?? plot.setting)} />
+              <SceneNarration
+                text={viewpoint === "self" ? nameInProse(fillUser(plot.prologue ?? plot.setting, userName), userName) : fillUser(plot.prologue ?? plot.setting, "")}
+              />
             </div>
           )}
           <ol className="space-y-6">

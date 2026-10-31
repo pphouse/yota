@@ -24,6 +24,24 @@ export function nameInNarration(text: string, name: string): string {
   return text.replace(/\*([^*]+)\*/g, (_, body: string) => `*${body.replaceAll("あなた", name)}*`);
 }
 
+/** 作品の文章の {{user}}（zeta と同じ書き方）を、遊ぶ人の名前にする。名前がなければ「あなた」 */
+export function fillUser(text: string, name: string): string {
+  return text.replace(/\{\{\s*user\s*\}\}|｛｛\s*user\s*｝｝/gi, name || "あなた");
+}
+
+/** 作品のすべての文章の {{user}} を置き換えた写しを返す */
+export function fillPlot<T>(plot: T, name: string): T {
+  const walk = (v: unknown): unknown =>
+    typeof v === "string"
+      ? fillUser(v, name)
+      : Array.isArray(v)
+        ? v.map(walk)
+        : v && typeof v === "object"
+          ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]))
+          : v;
+  return walk(plot) as T;
+}
+
 /** 舞台の説明など、地の文だけの文章の「あなた」をユーザーの名前にする */
 export function nameInProse(text: string, name: string): string {
   return name ? text.replaceAll("あなた", name) : text;

@@ -79,6 +79,14 @@ const SCHEMA = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_user_plots_status ON user_plots(status, updated_at)`,
   `CREATE INDEX IF NOT EXISTS idx_user_plots_session ON user_plots(session_id, updated_at)`,
+  // 作品のキャラに登録した画像（正方形の小さい絵。作る画面で切り抜いてから送る）
+  `CREATE TABLE IF NOT EXISTS ugc_images (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    mime TEXT NOT NULL,
+    data BLOB NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
 ];
 
 // あとから足した列。作成済みのDBにも足す（すでにあればエラーになるので無視する）

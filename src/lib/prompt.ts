@@ -1,5 +1,6 @@
 import { callName, pronouns, STAT_LABELS, type Plot, type StatKey, type Viewpoint } from "./characters";
 import { isUgcId } from "./ugc-schema";
+import { fillPlot } from "./username";
 import type { ChatMessage } from "./llm";
 
 export type PromptContext = {
@@ -58,8 +59,10 @@ export function describeStats(stats: Record<StatKey, number>): string[] {
 export const HOOK_DEADLINE_TURNS = 3;
 
 export function buildSystemPrompt(ctx: PromptContext): string {
-  const { plot, viewpoint, isMinor, summary, userTurns } = ctx;
+  const { viewpoint, isMinor, summary, userTurns } = ctx;
   const userName = viewpoint === "self" ? (ctx.userName ?? "") : "";
+  // 作品の文章の {{user}} を、遊ぶ人の名前（なければ「あなた」）にする
+  const plot = fillPlot(ctx.plot, userName);
   // 地の文でユーザーを指す言い方（名前があれば名前、なければ「あなた」）
   const you = userName || "あなた";
   const multi = viewpoint === "watch" || plot.personas.length > 1;
@@ -68,9 +71,12 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     .map((p) =>
       [
         `- 名前：${p.name}（${p.age}歳）`,
-        `  人物：${p.profile}`,
-        `  性格：${p.personality}`,
+        ...(p.profile ? [`  人物：${p.profile}`] : []),
+        ...(p.personality ? [`  性格：${p.personality}`] : []),
         `  口調：${p.speech}`,
+        ...(p.examples?.length
+          ? ["  口調の例（話し方の参考。同じ台詞をそのまま繰り返さない）：", ...p.examples.map((e) => `    相手「${e.user}」→ ${callName(p)}「${e.reply}」`)]
+          : []),
         ...(p.likes?.length || p.dislikes?.length
           ? [`  好き：${(p.likes ?? []).join("、") || "なし"}／嫌い：${(p.dislikes ?? []).join("、") || "なし"}`]
           : []),

@@ -89,6 +89,7 @@ describe("AIの下書き", () => {
 
   it("前後に文があっても JSON を読む", () => {
     expect(extractJson('はい、どうぞ。\n{"a": 1}\nいかがでしょう')).toEqual({ a: 1 });
+    expect(extractJson('{"a": {"b": [1]}')).toEqual({ a: { b: [1] } });
   });
 
   it("形が崩れていたら、理由を添えて1回だけ作り直させる", async () => {

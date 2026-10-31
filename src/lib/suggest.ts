@@ -3,6 +3,7 @@ import { hasForeignText } from "./japanese";
 import { generateText, type LLMProvider } from "./llm";
 import { checkText, mentionsSexual, needsCare } from "./safety";
 import type { StoredMessage } from "./store";
+import { fillPlot } from "./username";
 
 /** 見守りで候補が作れなかったときに出す、続きをそのまま見る選択肢 */
 export const WATCH_FALLBACK = "このまま見守る";
@@ -17,9 +18,10 @@ const CONTEXT_MESSAGES = 8;
 
 /** 返事の候補を考える係へのシステムプロンプト。キャラを演じる返答とは別に、短く呼ぶ。 */
 export function buildSuggestPrompt(ctx: { plot: Plot; viewpoint: Viewpoint; isMinor: boolean; summary: string; userName?: string }): string {
-  const { plot, viewpoint, isMinor, summary, userName } = ctx;
+  const { viewpoint, isMinor, summary, userName } = ctx;
+  const plot = fillPlot(ctx.plot, viewpoint === "self" ? (userName ?? "") : "");
   const names = plot.personas.map(callName);
-  const cast = plot.personas.map((p, i) => `- ${names[i]}（${p.age}歳）　${p.personality}`).join("\n");
+  const cast = plot.personas.map((p, i) => `- ${names[i]}（${p.age}歳）　${p.personality || p.profile}`).join("\n");
   const view =
     viewpoint === "self"
       ? [

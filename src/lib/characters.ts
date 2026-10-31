@@ -51,6 +51,8 @@ export type Persona = {
   mbti?: string;
   /** 性格パラメーター（0〜100）。紹介ページのレーダーチャートに出す */
   stats?: Record<StatKey, number>;
+  /** 口調の例（こう言われたら、こう返す）。ユーザーが作る作品で使う */
+  examples?: { user: string; reply: string }[];
 };
 
 /** 性格パラメーターの項目。並びはレーダーチャートの順（上から時計回り） */

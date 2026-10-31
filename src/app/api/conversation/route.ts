@@ -3,7 +3,7 @@ import type { Viewpoint } from "@/lib/characters";
 import { getSession } from "@/lib/session";
 import { addMessage, createConversation, getLatestConversation, listMessages, logEvent } from "@/lib/store";
 import { resolvePlot } from "@/lib/ugc";
-import { nameInNarration } from "@/lib/username";
+import { fillUser, nameInNarration } from "@/lib/username";
 
 const ViewpointSchema = z.enum(["self", "watch"]);
 
@@ -36,7 +36,8 @@ export async function POST(req: Request) {
   const viewpoint: Viewpoint = parsed.data.viewpoint;
   const conv = await createConversation(session.id, plot.id, viewpoint);
   // 当事者視点では、最初の一言の地の文に出てくる「あなた」をユーザーの名前にする
-  const opening = plot.opening[viewpoint] ?? "";
+  // 作品の {{user}} は、当事者視点ではユーザーの名前に、見守りでは「あなた」にする
+  const opening = fillUser(plot.opening[viewpoint] ?? "", viewpoint === "self" ? session.name : "");
   await addMessage(conv.id, "assistant", viewpoint === "self" ? nameInNarration(opening, session.name) : opening);
   await logEvent(session.id, "conversation_start", { plotId: plot.id, viewpoint });
   return Response.json({ conversation: { id: conv.id }, messages: await listMessages(conv.id) });

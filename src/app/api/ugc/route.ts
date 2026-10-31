@@ -3,7 +3,8 @@ import { generateJacket, jacketEnabled } from "@/lib/jacket";
 import { getSession } from "@/lib/session";
 import { logEvent } from "@/lib/store";
 import { countRecent, createUgc, getUgc, listUgc, setJacket } from "@/lib/ugc";
-import { checkCreation, PlotInput, PROBLEM_MESSAGE, sanitize } from "@/lib/ugc-schema";
+import { checkCreation, missingItems, PlotInput, PROBLEM_MESSAGE, sanitize } from "@/lib/ugc-schema";
+import { fillPlot } from "@/lib/username";
 
 // ジャケットの絵を作るのに1分ほどかかるので、返事を返したあとも続けて動けるようにする
 export const maxDuration = 300;
@@ -18,10 +19,11 @@ export async function GET(req: Request) {
     const session = await getSession();
     if (!session) return Response.json({ items: [] });
     const items = await listUgc({ sessionId: session.id });
-    return Response.json({ items: items.map(({ plot, meta }) => ({ plot, meta })) });
+    return Response.json({ items: items.map(({ plot, meta }) => ({ plot: fillPlot(plot, ""), meta })) });
   }
+  // 一覧に出す文章の {{user}} は「あなた」にする
   const items = await listUgc({ status: "public" });
-  return Response.json({ items: items.map(({ plot, meta }) => ({ plot, meta: { ...meta, author: meta.author } })) });
+  return Response.json({ items: items.map(({ plot, meta }) => ({ plot: fillPlot(plot, ""), meta })) });
 }
 
 /** 作品を保存する。リンクを知っている人が遊べる状態（private）で作り、ジャケットの絵はあとから作る */
@@ -29,10 +31,10 @@ export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return Response.json({ error: "年齢の確認が必要です" }, { status: 401 });
   if (session.isMinor) return Response.json({ error: "作品を作れるのは18歳以上の方です" }, { status: 403 });
-  const parsed = PlotInput.safeParse((await req.json().catch(() => null))?.plot);
+  const raw = (await req.json().catch(() => null))?.plot;
+  const parsed = PlotInput.safeParse(raw);
   if (!parsed.success) {
-    const first = parsed.error.issues[0];
-    return Response.json({ error: `入力を確かめてください（${first?.path.join(".")}：${first?.message}）` }, { status: 400 });
+    return Response.json({ error: `まだ書いていない項目があります（${missingItems(raw).map((m) => m.label).join("・")}）` }, { status: 400 });
   }
   const input = sanitize(parsed.data);
   const problems = checkCreation(input);

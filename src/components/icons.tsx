@@ -70,3 +70,30 @@ export const NarrationIcon = (p: P) => (
     <path d="M4 17h14" />
   </Svg>
 );
+
+export const SparkleIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 3.5l1.9 5.2 5.2 1.9-5.2 1.9L12 17.7l-1.9-5.2-5.2-1.9 5.2-1.9z" />
+    <path d="M19 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" />
+  </Svg>
+);
+
+export const CloseIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M6 6l12 12M18 6L6 18" />
+  </Svg>
+);
+
+export const PlusIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </Svg>
+);
+
+export const ImageIcon = (p: P) => (
+  <Svg {...p}>
+    <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
+    <circle cx="9" cy="10" r="1.8" />
+    <path d="M20.5 16l-5-5-8.5 8.5" />
+  </Svg>
+);

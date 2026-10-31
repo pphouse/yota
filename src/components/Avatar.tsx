@@ -13,6 +13,8 @@ export function Avatar({ persona, size = 32, ring = false }: { persona: Persona;
         width={size}
         height={size}
         draggable={false}
+        // ユーザーが登録した画像は、そのまま出す（最適化の対象外）
+        unoptimized={persona.face.startsWith("/api/")}
         className={`block shrink-0 select-none rounded-full bg-night-3 object-cover ${outline}`}
         style={{ width: size, height: size, border: `2px solid ${persona.color}` }}
       />

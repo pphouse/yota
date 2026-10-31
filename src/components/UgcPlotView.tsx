@@ -122,6 +122,9 @@ export function UgcPlotView() {
             <p className="mt-1 text-[0.88rem] leading-6 text-paper/90">{STATUS_TEXT[meta.status]}</p>
             {meta.jacketStatus === "failed" && <p className="mt-1 text-xs text-amber">ジャケットの絵は作れませんでした。文字だけのジャケットで表示しています。</p>}
             <div className="mt-3 flex flex-wrap gap-2">
+              <Link href={`/create?id=${meta.id}`} className="press rounded-full bg-paper px-4 py-2 text-sm font-bold text-night">
+                直す
+              </Link>
               {meta.status === "private" && (
                 <button disabled={busy} onClick={() => act("submit")} className="press btn-brand rounded-full px-4 py-2 text-sm">
                   「みんなの作品」への掲載を申請する

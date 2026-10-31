@@ -37,13 +37,15 @@ function newId(): string {
   return UGC_PREFIX + Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => chars[b % chars.length]).join("");
 }
 
-function toEntry(row: Row): { plot: Plot; meta: UgcMeta; sessionId: string } | null {
+function toEntry(row: Row): { plot: Plot; input: PlotInput; meta: UgcMeta; sessionId: string } | null {
   const parsed = PlotInput.safeParse(JSON.parse(row.data));
   if (!parsed.success) return null;
   const updatedAt = Number(row.updated_at);
   const jacket = row.jacket_status === "ready" ? `/api/ugc/${row.id}/jacket?v=${updatedAt}` : undefined;
   return {
     plot: toPlot(row.id, parsed.data, { jacket }),
+    /** 作者が書いたままの入力（空の項目を補う前）。作る画面で直すときに使う */
+    input: parsed.data,
     meta: { id: row.id, author: row.author, status: row.status, jacketStatus: row.jacket_status, createdAt: Number(row.created_at), updatedAt },
     sessionId: row.session_id,
   };
@@ -87,6 +89,17 @@ export async function listUgc(where: { status?: UgcStatus; sessionId?: string },
   return rows.map(toEntry).filter((e): e is NonNullable<typeof e> => e !== null);
 }
 
+/** 作品の中身を直す。公開中の作品は、もう一度確認するまで一覧から外す（承認後に中身を差し替えられないように） */
+export async function updateUgc(id: string, input: PlotInput, opts: { status: UgcStatus; jacketStatus?: JacketStatus }): Promise<void> {
+  const sets = ["data = ?", "status = ?", "updated_at = ?"];
+  const args: (string | number)[] = [JSON.stringify(input), opts.status, Date.now()];
+  if (opts.jacketStatus) {
+    sets.push("jacket_status = ?");
+    args.push(opts.jacketStatus);
+  }
+  await run(`UPDATE user_plots SET ${sets.join(", ")} WHERE id = ?`, [...args, id]);
+}
+
 export async function setUgcStatus(id: string, status: UgcStatus): Promise<void> {
   await run("UPDATE user_plots SET status = ?, updated_at = ? WHERE id = ?", [status, Date.now(), id]);
 }
@@ -99,6 +112,20 @@ export async function getJacket(id: string): Promise<Uint8Array | null> {
   const rows = await query<{ jacket: ArrayBuffer | Uint8Array | null }>("SELECT jacket FROM user_plots WHERE id = ? AND status <> 'removed'", [id]);
   const j = rows[0]?.jacket;
   return j ? new Uint8Array(j instanceof ArrayBuffer ? j : j) : null;
+}
+
+/** キャラの画像を保存し、画像の場所（/api/ugc/images/<id>）を返す */
+export async function saveImage(sessionId: string, data: Uint8Array, mime: string): Promise<string> {
+  const chars = "abcdefghijkmnpqrstuvwxyz23456789";
+  const id = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => chars[b % chars.length]).join("");
+  await run("INSERT INTO ugc_images (id, session_id, mime, data, created_at) VALUES (?, ?, ?, ?, ?)", [id, sessionId, mime, data, Date.now()]);
+  return `/api/ugc/images/${id}`;
+}
+
+export async function getImage(id: string): Promise<{ data: Uint8Array; mime: string } | null> {
+  const rows = await query<{ data: ArrayBuffer | Uint8Array; mime: string }>("SELECT data, mime FROM ugc_images WHERE id = ?", [id]);
+  const r = rows[0];
+  return r ? { data: new Uint8Array(r.data), mime: r.mime } : null;
 }
 
 export async function deleteUgc(id: string): Promise<void> {

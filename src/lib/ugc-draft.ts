@@ -68,12 +68,21 @@ function system(viewpoint: Viewpoint): string {
   ].join("\n");
 }
 
-/** 文章から、最初の { から最後の } までを JSON として読む */
+/** 文章から、最初の { から最後の } までを JSON として読む。最後の } が欠けていたら補って読む */
 export function extractJson(text: string): unknown {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
-  if (start < 0 || end <= start) throw new Error("JSON が見つかりません");
-  return JSON.parse(text.slice(start, end + 1));
+  if (start < 0) throw new Error("JSON が見つかりません");
+  try {
+    if (end <= start) throw new Error("JSON が閉じていません");
+    return JSON.parse(text.slice(start, end + 1));
+  } catch (e) {
+    try {
+      return JSON.parse(text.slice(start).trimEnd() + "}");
+    } catch {
+      throw e;
+    }
+  }
 }
 
 export type DraftResult = { ok: true; input: PlotInput } | { ok: false; error: string; problems?: CreationProblem[] };
