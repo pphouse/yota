@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { AvatarStack } from "@/components/Avatar";
 import { MbtiChip, NewBadge } from "@/components/Badges";
 import { GENRES, type Genre, type Plot, type Viewpoint } from "@/lib/characters";
 import { track } from "@/lib/client";
@@ -17,29 +16,25 @@ const TABS: { id: Viewpoint; label: string; hint: string }[] = [
 type Filter = { kind: "genre"; id: Genre } | { kind: "tag"; tag: string } | null;
 
 /**
- * 作品のカード。表紙（ジャケット）を大きく見せ、その下にキャッチコピーとハッシュタグを置く。
+ * 作品のカード。タイトル文字入りのジャケットをそのまま見せ、その下にタイトル・キャッチコピー・ハッシュタグを置く。
  * note を渡すと、キャッチコピーの代わりに出す（「〜を遊んだあなたに」など）
  */
 export function PlotCard({ plot, viewpoint, onTag, note }: { plot: Plot; viewpoint?: Viewpoint; onTag?: (tag: string) => void; note?: string }) {
   return (
     <div>
       <Link href={viewpoint ? `/plot/${plot.id}?v=${viewpoint}` : `/plot/${plot.id}`} className="press block" aria-label={`${plot.title}　${plot.catchphrase}`}>
-        <div className="relative aspect-[2/3] overflow-hidden rounded-2xl bg-night-2">
-          {plot.cover && (
-            <Image src={plot.cover} alt="" fill sizes="(min-width: 576px) 270px, 46vw" className="object-cover object-top" />
+        <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-night-2">
+          {(plot.jacket ?? plot.cover) && (
+            <Image src={(plot.jacket ?? plot.cover)!} alt="" fill sizes="(min-width: 576px) 270px, 46vw" className="object-cover object-top" />
           )}
-          <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-t from-black/95 via-black/60 to-transparent" />
-          <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-1">
+          <div className="absolute inset-x-2 bottom-2 flex items-end justify-between gap-1">
             <MbtiChip personas={plot.personas} />
             <NewBadge plot={plot} />
           </div>
-          <div className="absolute inset-x-0 bottom-0 p-3">
-            <AvatarStack personas={plot.personas} size={26} />
-            <h3 className="break-phrase mt-1.5 line-clamp-3 text-balance text-[1.02rem] font-black leading-snug">{plot.title}</h3>
-          </div>
         </div>
+        <h3 className="break-phrase mt-2 line-clamp-2 px-0.5 text-[0.95rem] font-black leading-snug">{plot.title}</h3>
       </Link>
-      <p className={`break-phrase mt-2 line-clamp-2 px-0.5 text-[0.75rem] leading-5 ${note ? "font-bold text-brand" : "text-mist"}`}>{note ?? plot.catchphrase}</p>
+      <p className={`break-phrase mt-1 line-clamp-2 px-0.5 text-[0.75rem] leading-5 ${note ? "font-bold text-brand" : "text-mist"}`}>{note ?? plot.catchphrase}</p>
       {onTag && (
         <ul className="mt-1.5 flex flex-wrap gap-1 px-0.5">
           {plot.tags.map((t) => (

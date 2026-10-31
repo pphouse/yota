@@ -34,13 +34,16 @@ export default async function PlotPage({ params }: PageProps<"/plot/[plotId]">) 
         </div>
       </header>
 
-      {plot.cover && (
-        <div className="relative h-[52vh] max-h-[34rem] [mask-image:linear-gradient(to_bottom,black_55%,transparent)]">
-          <Image src={plot.cover} alt="" fill sizes="(min-width: 576px) 576px, 100vw" preload className="object-cover object-[50%_15%]" />
+      {(plot.jacket ?? plot.cover) && (
+        // ジャケットはタイトルの文字入りなので、切らずにそのまま見せる
+        <div className="px-5 pt-3">
+          <div className="relative mx-auto aspect-[3/4] w-full max-w-[24rem] overflow-hidden rounded-3xl bg-night-2 shadow-2xl shadow-black/40">
+            <Image src={(plot.jacket ?? plot.cover)!} alt={plot.title} fill sizes="(min-width: 576px) 384px, 90vw" preload className="object-cover" />
+          </div>
         </div>
       )}
 
-      <div className={`relative px-5 ${plot.cover ? "-mt-16" : "pt-6"}`}>
+      <div className="relative px-5 pt-6">
         <h1 className="break-phrase text-balance text-[1.6rem] font-black leading-snug">{plot.title}</h1>
         <p className="break-phrase mt-2 text-[0.95rem] leading-7 text-paper/90">{plot.catchphrase}</p>
         <p className="mt-3 flex flex-wrap items-center gap-x-2 text-[0.78rem] font-medium leading-6 text-mist">

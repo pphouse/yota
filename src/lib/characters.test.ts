@@ -25,9 +25,10 @@ describe("公式の作品とキャラクター", () => {
     }
   });
 
-  it("表紙・背景・顔の絵のファイルがある", () => {
+  it("表紙・ジャケット・背景・顔の絵のファイルがある", () => {
     for (const plot of PLOTS) {
-      for (const src of [plot.cover, plot.backdrop, ...plot.personas.map((p) => p.face)]) {
+      expect(plot.jacket, plot.id).toBeTruthy();
+      for (const src of [plot.cover, plot.jacket, plot.backdrop, ...plot.personas.map((p) => p.face)]) {
         if (src) expect(existsSync(publicFile(src)), src).toBe(true);
       }
     }

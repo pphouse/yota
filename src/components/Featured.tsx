@@ -75,26 +75,24 @@ export function Featured({ plots }: { plots: Plot[] }) {
         className="rail relative flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-5 px-5 pb-2"
       >
         {plots.map((plot, i) => (
-          <li key={plot.id} className="w-[84%] shrink-0 snap-start">
-            <Link
-              href={`/plot/${plot.id}`}
-              data-featured
-              className="press relative block aspect-[4/5] overflow-hidden rounded-3xl bg-night-2"
-            >
-              {plot.cover && (
-                <Image
-                  src={plot.cover}
-                  alt=""
-                  fill
-                  sizes="(min-width: 576px) 484px, 84vw"
-                  loading={i === 0 ? "eager" : "lazy"}
-                  fetchPriority={i === 0 ? "high" : "auto"}
-                  className="object-cover object-top"
-                />
-              )}
-              <span aria-hidden className="absolute inset-x-0 bottom-0 h-[72%] bg-linear-to-t from-black via-black/75 to-transparent" />
-              <NewBadge plot={plot} className="absolute left-4 top-4" />
-              <div className="absolute inset-x-0 bottom-0 p-5">
+          <li key={plot.id} className="w-[74%] shrink-0 snap-start">
+            <Link href={`/plot/${plot.id}`} data-featured className="press block">
+              {/* ジャケットはタイトルの文字入りなので、上に文字を重ねずにそのまま見せる */}
+              <div className="relative aspect-[3/4] overflow-hidden rounded-3xl bg-night-2">
+                {(plot.jacket ?? plot.cover) && (
+                  <Image
+                    src={(plot.jacket ?? plot.cover)!}
+                    alt=""
+                    fill
+                    sizes="(min-width: 576px) 426px, 74vw"
+                    loading={i === 0 ? "eager" : "lazy"}
+                    fetchPriority={i === 0 ? "high" : "auto"}
+                    className="object-cover object-top"
+                  />
+                )}
+                <NewBadge plot={plot} className="absolute left-3 top-3" />
+              </div>
+              <div className="px-1 pt-3">
                 <div className="flex items-center gap-2.5">
                   <AvatarStack personas={plot.personas} size={34} />
                   <p className="truncate text-[0.8rem] font-bold">
@@ -107,8 +105,8 @@ export function Featured({ plots }: { plots: Plot[] }) {
                     ))}
                   </p>
                 </div>
-                <h2 className="break-phrase mt-2.5 text-balance text-[1.45rem] font-black leading-snug">{plot.title}</h2>
-                <p className="break-phrase mt-1 line-clamp-2 text-[0.85rem] leading-6 text-paper/85">{plot.catchphrase}</p>
+                <h2 className="break-phrase mt-2 text-balance text-[1.15rem] font-black leading-snug">{plot.title}</h2>
+                <p className="break-phrase mt-1 line-clamp-2 text-[0.82rem] leading-6 text-paper/85">{plot.catchphrase}</p>
                 <div className="mt-3 flex items-center justify-between gap-3">
                   <p className="min-w-0 truncate text-[0.72rem] font-medium text-mist">
                     {plot.tags.map((t) => `#${t}`).join(" ")}
