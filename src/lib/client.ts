@@ -11,6 +11,21 @@ export function track(type: TrackType, props: Record<string, string | number | b
   }).catch(() => {});
 }
 
+export type SessionInfo = { session: { isMinor: boolean; name: string } | null; played?: string[] };
+
+let sessionInfo: { at: number; promise: Promise<SessionInfo | null> } | null = null;
+
+/**
+ * ホームの部品（名前・あなたにおすすめ）で、/api/session を分け合って1回だけ取りに行く。
+ * 数秒たったら取り直す（物語を遊んで戻ってきたとき、おすすめを新しくするため）
+ */
+export function getSessionInfo(): Promise<SessionInfo | null> {
+  if (!sessionInfo || Date.now() - sessionInfo.at > 5000) {
+    sessionInfo = { at: Date.now(), promise: api<SessionInfo>("/api/session").then((r) => (r.ok ? r.data : null)) };
+  }
+  return sessionInfo.promise;
+}
+
 /** NDJSON の返答を1イベントずつ読む */
 export async function* readEvents(res: Response): AsyncGenerator<ChatEvent> {
   if (!res.body) return;

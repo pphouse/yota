@@ -4,8 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Avatar } from "@/components/Avatar";
+import { NewBadge } from "@/components/Badges";
 import { BackIcon } from "@/components/icons";
 import { StartButtons } from "@/components/StartButtons";
+import { StatRadar } from "@/components/StatRadar";
 import { getPlot, PLOTS, pronouns, type Persona } from "@/lib/characters";
 
 export function generateStaticParams() {
@@ -41,7 +43,10 @@ export default async function PlotPage({ params }: PageProps<"/plot/[plotId]">) 
       <div className={`relative px-5 ${plot.cover ? "-mt-16" : "pt-6"}`}>
         <h1 className="break-phrase text-balance text-[1.6rem] font-black leading-snug">{plot.title}</h1>
         <p className="break-phrase mt-2 text-[0.95rem] leading-7 text-paper/90">{plot.catchphrase}</p>
-        <p className="mt-3 text-[0.78rem] font-medium leading-6 text-mist">{plot.tags.map((t) => `#${t}`).join(" ")}</p>
+        <p className="mt-3 flex flex-wrap items-center gap-x-2 text-[0.78rem] font-medium leading-6 text-mist">
+          <NewBadge plot={plot} />
+          {plot.tags.map((t) => `#${t}`).join(" ")}
+        </p>
         <div className="mt-6">
           <Suspense fallback={<div className="h-14 rounded-2xl bg-night-3" />}>
             <StartButtons plot={plot} />
@@ -109,11 +114,18 @@ function Profile({ persona: p }: { persona: Persona }) {
             {p.name}
           </p>
           {p.reading && <p className="mt-0.5 text-[0.75rem] text-mist">{p.reading}</p>}
-          <p className="mt-1 text-[0.8rem] text-paper/80">
+          <p className="mt-1 flex items-center gap-2 text-[0.8rem] text-paper/80">
             {p.age}歳{p.height ? `・${p.height}cm` : ""}
+            {p.mbti && <span className="rounded-full bg-night-3 px-2 py-0.5 text-[0.7rem] font-bold tracking-wider text-paper">{p.mbti}</span>}
           </p>
         </div>
       </div>
+      {p.stats && (
+        <div className="mt-4">
+          <p className="text-[0.72rem] font-bold text-mist">性格パラメーター</p>
+          <StatRadar persona={p} />
+        </div>
+      )}
       <dl className="mt-4 space-y-3">
         {rows
           .filter((r): r is [string, string] => Boolean(r[1]))

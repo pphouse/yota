@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AvatarStack } from "@/components/Avatar";
+import { NewBadge } from "@/components/Badges";
 import { callName, type Plot } from "@/lib/characters";
 
 /** 自動で次のカードへ送る間隔と、触ったあとに自動送りを止めておく時間 */
@@ -92,6 +93,7 @@ export function Featured({ plots }: { plots: Plot[] }) {
                 />
               )}
               <span aria-hidden className="absolute inset-x-0 bottom-0 h-[72%] bg-linear-to-t from-black via-black/75 to-transparent" />
+              <NewBadge plot={plot} className="absolute left-4 top-4" />
               <div className="absolute inset-x-0 bottom-0 p-5">
                 <div className="flex items-center gap-2.5">
                   <AvatarStack personas={plot.personas} size={34} />
@@ -100,6 +102,7 @@ export function Featured({ plots }: { plots: Plot[] }) {
                       <span key={p.name}>
                         {j > 0 && <span className="text-mist"> × </span>}
                         <span style={{ color: p.color }}>{callName(p)}</span>
+                        {p.mbti && <span className="ml-1 text-[0.7rem] font-medium tracking-wide text-paper/60">{p.mbti}</span>}
                       </span>
                     ))}
                   </p>

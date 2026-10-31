@@ -1,4 +1,5 @@
 import { Featured } from "@/components/Featured";
+import { ForYou } from "@/components/ForYou";
 import { Logo } from "@/components/Logo";
 import { PlotList } from "@/components/PlotList";
 import { Shelf } from "@/components/Shelf";
@@ -17,6 +18,7 @@ export default function Home() {
         </div>
       </header>
       <Featured plots={PLOTS.filter((p) => p.featured)} />
+      <ForYou />
       <Shelf title="学園もの" plots={PLOTS.filter((p) => p.tags.includes("大学"))} />
       <PlotList plots={PLOTS} />
       <footer className="mt-14 px-5 text-xs leading-6 text-mist/80">

@@ -69,6 +69,15 @@ export async function getLatestConversation(sessionId: string, plotId: string, v
   return rows[0] ? toConv(rows[0]) : null;
 }
 
+/** そのセッションで開いた作品（最近のものから）。「あなたにおすすめ」に使う */
+export async function listPlayedPlots(sessionId: string, limit = 20): Promise<string[]> {
+  const rows = await query<{ plot_id: string }>(
+    "SELECT plot_id, MAX(updated_at) AS last FROM conversations WHERE session_id = ? GROUP BY plot_id ORDER BY last DESC LIMIT ?",
+    [sessionId, limit],
+  );
+  return rows.map((r) => String(r.plot_id));
+}
+
 export async function listMessages(conversationId: string, fromSeq = 0): Promise<StoredMessage[]> {
   const rows = await query<MsgRow>(
     "SELECT id, seq, role, content, flagged FROM messages WHERE conversation_id = ? AND seq >= ? ORDER BY seq",

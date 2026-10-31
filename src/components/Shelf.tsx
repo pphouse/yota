@@ -1,8 +1,8 @@
 import { PlotCard } from "@/components/PlotList";
 import type { Plot } from "@/lib/characters";
 
-/** テーマごとの棚。小さめの表紙を横にすべらせて見せる */
-export function Shelf({ title, hint, plots }: { title: string; hint?: string; plots: Plot[] }) {
+/** テーマごとの棚。小さめの表紙を横にすべらせて見せる。notes を渡すと、カードの下にキャッチコピーの代わりに出す */
+export function Shelf({ title, hint, plots, notes }: { title: string; hint?: string; plots: Plot[]; notes?: Record<string, string> }) {
   if (plots.length === 0) return null;
   return (
     <section aria-label={title} className="mt-9">
@@ -11,7 +11,7 @@ export function Shelf({ title, hint, plots }: { title: string; hint?: string; pl
       <ul className="rail mt-3 flex snap-x gap-3 overflow-x-auto scroll-px-5 px-5 pb-1">
         {plots.map((plot) => (
           <li key={plot.id} className="w-[44%] shrink-0 snap-start">
-            <PlotCard plot={plot} />
+            <PlotCard plot={plot} note={notes?.[plot.id]} />
           </li>
         ))}
       </ul>

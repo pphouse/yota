@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { PenIcon } from "@/components/icons";
-import { api } from "@/lib/client";
+import { api, getSessionInfo } from "@/lib/client";
 import { USER_NAME_MAX } from "@/lib/username";
 
 /** ホームの右上。物語の中で呼ばれる名前を見せ、押すと変えられる。年齢確認の前は何も出さない */
@@ -15,8 +15,8 @@ export function UserName() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    void api<{ session: { name: string } | null }>("/api/session").then((r) => {
-      if (r.ok && r.data.session) setName(r.data.session.name);
+    void getSessionInfo().then((info) => {
+      if (info?.session) setName(info.session.name);
     });
   }, []);
 

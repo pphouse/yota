@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MIN_AGE, ageFrom, isValidBirth } from "@/lib/age";
 import { createSession, getSession, setSessionName } from "@/lib/session";
-import { logEvent } from "@/lib/store";
+import { listPlayedPlots, logEvent } from "@/lib/store";
 import { getUsage } from "@/lib/usage";
 import { normalizeUserName, USER_NAME_MAX } from "@/lib/username";
 
@@ -10,8 +10,8 @@ const NAME_ERROR = `名前は1〜${USER_NAME_MAX}文字で入力してくださ�
 export async function GET() {
   const session = await getSession();
   if (!session) return Response.json({ session: null });
-  const usage = await getUsage(session.id, session.isMinor);
-  return Response.json({ session: { isMinor: session.isMinor, name: session.name }, usage });
+  const [usage, played] = await Promise.all([getUsage(session.id, session.isMinor), listPlayedPlots(session.id)]);
+  return Response.json({ session: { isMinor: session.isMinor, name: session.name }, usage, played });
 }
 
 const Body = z.object({ birthYear: z.number().int(), birthMonth: z.number().int(), name: z.string().max(64) });

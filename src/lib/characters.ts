@@ -47,7 +47,22 @@ export type Persona = {
   habits?: string[];
   /** 好きになったら（関係が深まってから見せる一面） */
   inLove?: string;
+  /** MBTI（4文字）。紹介ページとカードに出す */
+  mbti?: string;
+  /** 性格パラメーター（0〜100）。紹介ページのレーダーチャートに出す */
+  stats?: Record<StatKey, number>;
 };
+
+/** 性格パラメーターの項目。並びはレーダーチャートの順（上から時計回り） */
+export const STAT_LABELS = {
+  sweet: "甘さ",
+  devoted: "一途",
+  possessive: "独占欲",
+  warmth: "包容力",
+  tsundere: "ツンデレ",
+  mystery: "ミステリアス",
+} as const;
+export type StatKey = keyof typeof STAT_LABELS;
 
 export type Plot = {
   id: string;
@@ -81,7 +96,18 @@ export type Plot = {
   prologue?: string;
   /** 当事者視点での、あなたの役（紹介ページに出す） */
   role?: string;
+  /** 公開後に追加した日（YYYY-MM-DD）。最初に公開した作品には書かない。追加から NEW_DAYS 日は NEW を付ける */
+  addedAt?: string;
 };
+
+/** NEW を付けておく日数 */
+export const NEW_DAYS = 21;
+
+export function isNew(plot: Plot, now: number): boolean {
+  if (!plot.addedAt) return false;
+  const added = Date.parse(`${plot.addedAt}T00:00:00+09:00`);
+  return now >= added && now - added < NEW_DAYS * 24 * 60 * 60 * 1000;
+}
 
 export const PLOTS: Plot[] = [
   {
@@ -99,6 +125,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "灰原 湊斗",
+        mbti: "ISFJ",
+        stats: { sweet: 55, devoted: 80, possessive: 45, warmth: 85, tsundere: 30, mystery: 65 },
         register: "plain",
         reading: "はいばら みなと",
         height: 181,
@@ -157,6 +185,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "一ノ瀬 蓮",
+        mbti: "INTJ",
+        stats: { sweet: 35, devoted: 90, possessive: 70, warmth: 45, tsundere: 70, mystery: 55 },
         reading: "いちのせ れん",
         height: 180,
         likes: ["昔ふたりで通った定食屋", "締め切り前の静かなオフィス", "古い映画"],
@@ -213,6 +243,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "犬飼 陽太",
+        mbti: "ENFP",
+        stats: { sweet: 70, devoted: 75, possessive: 40, warmth: 60, tsundere: 10, mystery: 10 },
         reading: "いぬかい ようた",
         height: 176,
         likes: ["透の書くネタ", "コンビニの新作スイーツ", "大きな声で笑うお客さん"],
@@ -235,6 +267,8 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "白石 透",
+        mbti: "INTP",
+        stats: { sweet: 20, devoted: 90, possessive: 45, warmth: 70, tsundere: 85, mystery: 40 },
         reading: "しらいし とおる",
         height: 178,
         likes: ["深夜のファミレスでネタを書く時間", "陽太の笑い声", "冷めたコーヒー"],
@@ -289,6 +323,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "ライナルト・ヴァイス",
+        mbti: "ISTP",
+        stats: { sweet: 25, devoted: 85, possessive: 60, warmth: 65, tsundere: 60, mystery: 30 },
         height: 188,
         likes: ["剣の手入れ", "甘い焼き菓子（部下には隠している）", "朝の鍛錬"],
         dislikes: ["回りくどい言い方", "魔術で済ませようとする怠け"],
@@ -310,6 +346,8 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "ノア・エルフェン",
+        mbti: "ENTP",
+        stats: { sweet: 45, devoted: 70, possessive: 55, warmth: 40, tsundere: 65, mystery: 60 },
         height: 179,
         likes: ["丁寧に淹れた紅茶", "難しい古文書", "団長殿をからかうこと"],
         dislikes: ["高いところ", "退屈な晩餐会"],
@@ -364,6 +402,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "久我 朔也",
+        mbti: "INTJ",
+        stats: { sweet: 60, devoted: 85, possessive: 85, warmth: 70, tsundere: 70, mystery: 50 },
         reading: "くが さくや",
         height: 183,
         likes: ["夜中にひとりで料理をすること", "整った書類", "犬（飼ったことはない）"],
@@ -418,6 +458,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "日向 颯",
+        mbti: "ESFP",
+        stats: { sweet: 90, devoted: 95, possessive: 55, warmth: 55, tsundere: 10, mystery: 15 },
         register: "polite",
         reading: "ひなた はやて",
         height: 184,
@@ -474,6 +516,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "ルシアン・ブラックウッド",
+        mbti: "INFJ",
+        stats: { sweet: 70, devoted: 80, possessive: 75, warmth: 75, tsundere: 20, mystery: 95 },
         register: "plain",
         height: 186,
         likes: ["夜にだけ咲く薔薇", "古い詩集", "客人と話す夜"],
@@ -529,6 +573,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "天羽 リオ",
+        mbti: "ISFP",
+        stats: { sweet: 75, devoted: 80, possessive: 40, warmth: 50, tsundere: 30, mystery: 55 },
         reading: "あもう りお",
         height: 175,
         likes: ["地元のパン屋のメロンパン", "誰もいない夜のコンビニ", "ステージのあとの静けさ"],
@@ -586,6 +632,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "獅堂 剛",
+        mbti: "ESTP",
+        stats: { sweet: 30, devoted: 75, possessive: 60, warmth: 70, tsundere: 65, mystery: 10 },
         register: "plain",
         reading: "しどう ごう",
         height: 182,
@@ -610,6 +658,8 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "氷室 透真",
+        mbti: "ISTJ",
+        stats: { sweet: 25, devoted: 80, possessive: 50, warmth: 45, tsundere: 80, mystery: 35 },
         register: "polite",
         reading: "ひむろ とうま",
         height: 177,
@@ -666,6 +716,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "エリアス・フォン・リヒト",
+        mbti: "ENFJ",
+        stats: { sweet: 70, devoted: 85, possessive: 35, warmth: 80, tsundere: 15, mystery: 20 },
         height: 172,
         likes: ["甘い林檎", "城の図書室の古い本", "カイの作る野草のスープ"],
         dislikes: ["守られるだけの自分", "雷の夜"],
@@ -687,6 +739,8 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "カイ",
+        mbti: "ISFJ",
+        stats: { sweet: 40, devoted: 100, possessive: 55, warmth: 85, tsundere: 30, mystery: 60 },
         register: "polite",
         height: 185,
         likes: ["剣の手入れ", "殿下の寝顔を見張る夜", "野草の料理"],
@@ -741,6 +795,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "シエル",
+        mbti: "ENTP",
+        stats: { sweet: 55, devoted: 75, possessive: 50, warmth: 50, tsundere: 35, mystery: 100 },
         register: "polite",
         height: 178,
         likes: ["高い場所から見る夜景", "古い懐中時計の修理", "探偵くんとの知恵比べ"],
@@ -763,6 +819,8 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "鷹宮 慧",
+        mbti: "INTJ",
+        stats: { sweet: 20, devoted: 85, possessive: 65, warmth: 35, tsundere: 85, mystery: 40 },
         register: "plain",
         reading: "たかみや けい",
         height: 180,
@@ -820,6 +878,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "ゼルヴァン",
+        mbti: "ENTJ",
+        stats: { sweet: 60, devoted: 80, possessive: 70, warmth: 65, tsundere: 55, mystery: 45 },
         register: "plain",
         height: 190,
         likes: ["和食", "勇者の「おいしい」", "千年分の料理の研究"],
@@ -842,6 +902,8 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "アレン",
+        mbti: "ISFP",
+        stats: { sweet: 65, devoted: 75, possessive: 30, warmth: 90, tsundere: 5, mystery: 15 },
         register: "plain",
         height: 174,
         likes: ["畑仕事", "ゼルヴァンの肉じゃが", "昼寝"],
@@ -897,6 +959,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "九条 玲司",
+        mbti: "ENTJ",
+        stats: { sweet: 35, devoted: 75, possessive: 70, warmth: 40, tsundere: 85, mystery: 40 },
         register: "plain",
         reading: "くじょう れいじ",
         height: 179,
@@ -954,6 +1018,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "野々宮 楓",
+        mbti: "ENFJ",
+        stats: { sweet: 80, devoted: 80, possessive: 30, warmth: 95, tsundere: 5, mystery: 20 },
         reading: "ののみや かえで",
         height: 177,
         likes: ["夜明け前の空の色", "焼きたての匂い", "眠れない人の話し相手"],
@@ -976,6 +1042,8 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "霧島 静",
+        mbti: "INFJ",
+        stats: { sweet: 30, devoted: 85, possessive: 45, warmth: 40, tsundere: 85, mystery: 70 },
         reading: "きりしま しずか",
         height: 183,
         likes: ["夜中のラジオ", "古い童話", "楓のパンの匂い"],
@@ -1031,6 +1099,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "クラウス・ノルデン",
+        mbti: "ISTJ",
+        stats: { sweet: 75, devoted: 100, possessive: 60, warmth: 90, tsundere: 40, mystery: 65 },
         register: "plain",
         height: 189,
         likes: ["領地のバターたっぷりのクッキー", "雪かき", "静かな書斎"],
@@ -1085,6 +1155,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "相馬 航",
+        mbti: "ESFJ",
+        stats: { sweet: 40, devoted: 100, possessive: 55, warmth: 70, tsundere: 90, mystery: 15 },
         register: "plain",
         reading: "そうま わたる",
         height: 178,
@@ -1140,6 +1212,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "鳴海 岳",
+        mbti: "ISFJ",
+        stats: { sweet: 60, devoted: 95, possessive: 30, warmth: 75, tsundere: 20, mystery: 30 },
         reading: "なるみ がく",
         height: 182,
         likes: ["星を見て方角を確かめること", "カレー当番", "朝の甲板"],
@@ -1193,6 +1267,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "セドリック・ヴァーン",
+        mbti: "ESFJ",
+        stats: { sweet: 70, devoted: 90, possessive: 45, warmth: 80, tsundere: 10, mystery: 10 },
         register: "polite",
         height: 185,
         likes: ["野営の火起こし", "城下の子どもたちに剣を教えること", "甘い蜂蜜パン"],
@@ -1247,6 +1323,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "高槻 律",
+        mbti: "INFJ",
+        stats: { sweet: 65, devoted: 100, possessive: 50, warmth: 90, tsundere: 15, mystery: 35 },
         register: "polite",
         reading: "たかつき りつ",
         height: 176,
@@ -1270,6 +1348,8 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "早瀬 誠一",
+        mbti: "INTP",
+        stats: { sweet: 40, devoted: 70, possessive: 25, warmth: 65, tsundere: 15, mystery: 30 },
         register: "plain",
         reading: "はやせ せいいち",
         height: 180,
@@ -1326,6 +1406,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "一条 蒼",
+        mbti: "ENTP",
+        stats: { sweet: 45, devoted: 75, possessive: 60, warmth: 50, tsundere: 60, mystery: 75 },
         reading: "いちじょう あおい",
         height: 178,
         likes: ["担当した夫婦からの年賀状", "完璧な段取り", "久住をからかうこと"],
@@ -1349,6 +1431,8 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "久住 大河",
+        mbti: "ISTP",
+        stats: { sweet: 35, devoted: 85, possessive: 55, warmth: 65, tsundere: 85, mystery: 20 },
         register: "plain",
         reading: "くずみ たいが",
         height: 183,
@@ -1405,6 +1489,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "柚木 恭介",
+        mbti: "INTP",
+        stats: { sweet: 40, devoted: 70, possessive: 30, warmth: 55, tsundere: 35, mystery: 25 },
         register: "polite",
         reading: "ゆずき きょうすけ",
         height: 177,
@@ -1428,6 +1514,8 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "白銀",
+        mbti: "ENFP",
+        stats: { sweet: 60, devoted: 80, possessive: 75, warmth: 55, tsundere: 50, mystery: 90 },
         register: "plain",
         height: 186,
         likes: ["団子", "村祭りの灯り", "人の子をからかうこと"],
@@ -1482,6 +1570,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "天城 響",
+        mbti: "ESTJ",
+        stats: { sweet: 45, devoted: 80, possessive: 50, warmth: 40, tsundere: 75, mystery: 20 },
         reading: "あまぎ ひびき",
         height: 180,
         likes: ["素朴な味噌汁", "正確なレシピ", "褒められること（認めない）"],
@@ -1522,6 +1612,7 @@ export const PLOTS: Plot[] = [
   },
   {
     id: "sleepy-prince",
+    addedAt: "2026-10-25",
     featured: true,
     cover: "/art/sleepy-prince-cover.webp",
     backdrop: "/art/sleepy-prince-bg.webp",
@@ -1536,6 +1627,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "宵宮 千景",
+        mbti: "INFP",
+        stats: { sweet: 70, devoted: 85, possessive: 65, warmth: 45, tsundere: 40, mystery: 80 },
         register: "plain",
         reading: "よいみや ちかげ",
         height: 178,
@@ -1578,6 +1671,7 @@ export const PLOTS: Plot[] = [
   },
   {
     id: "festival-chair",
+    addedAt: "2026-10-25",
     cover: "/art/festival-chair-cover.webp",
     backdrop: "/art/festival-chair-bg.webp",
     title: "学園祭実行委員長は、私にだけ厳しい",
@@ -1591,6 +1685,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "東雲 司",
+        mbti: "ESTJ",
+        stats: { sweet: 35, devoted: 85, possessive: 70, warmth: 75, tsundere: 90, mystery: 25 },
         register: "plain",
         reading: "しののめ つかさ",
         height: 181,
@@ -1633,6 +1729,7 @@ export const PLOTS: Plot[] = [
   },
   {
     id: "art-rooftop",
+    addedAt: "2026-10-25",
     cover: "/art/art-rooftop-cover.webp",
     backdrop: "/art/art-rooftop-bg.webp",
     title: "美大の屋上で、先輩は絵を描かない",
@@ -1646,6 +1743,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "水無瀬 怜",
+        mbti: "INFP",
+        stats: { sweet: 65, devoted: 80, possessive: 35, warmth: 85, tsundere: 15, mystery: 75 },
         register: "plain",
         reading: "みなせ れい",
         height: 179,
@@ -1688,6 +1787,7 @@ export const PLOTS: Plot[] = [
   },
   {
     id: "dorm-rivals",
+    addedAt: "2026-10-25",
     cover: "/art/dorm-rivals-cover.webp",
     backdrop: "/art/dorm-rivals-bg.webp",
     title: "寮の同室は、犬猿の仲",
@@ -1701,6 +1801,8 @@ export const PLOTS: Plot[] = [
     personas: [
       {
         name: "剣持 大和",
+        mbti: "ESTP",
+        stats: { sweet: 55, devoted: 80, possessive: 50, warmth: 70, tsundere: 45, mystery: 5 },
         register: "plain",
         reading: "けんもち やまと",
         height: 181,
@@ -1725,6 +1827,8 @@ export const PLOTS: Plot[] = [
       },
       {
         name: "白峰 伊織",
+        mbti: "ISTJ",
+        stats: { sweet: 30, devoted: 85, possessive: 55, warmth: 50, tsundere: 90, mystery: 45 },
         register: "plain",
         reading: "しらみね いおり",
         height: 175,
