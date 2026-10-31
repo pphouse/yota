@@ -99,6 +99,8 @@ export type CreationProblem = "minor" | "sexual" | "explicit";
 
 // 作品の設定では、学校の段階を示す語も止める（舞台が高校以下になると、登場人物も未成年になりやすい）
 const SCHOOL_WORDS = ["高校", "中学", "小学", "生徒", "幼稚園", "保育園", "ランドセル", "女子校", "男子校"];
+// 大人になった登場人物の思い出（高校時代に出会った、など）は止めない
+const PAST_SCHOOL = /(高校|中学|小学)(時代|の頃|のころ|の時|のとき|以来|卒業|の同級生|の同窓|の先輩|の後輩|からの)/g;
 
 /**
  * 作品づくりの安全判定。会話の判定より厳しく、未成年を示す語・性的な語は、組み合わせでなくても1つで止める
@@ -107,7 +109,8 @@ const SCHOOL_WORDS = ["高校", "中学", "小学", "生徒", "幼稚園", "保�
 export function checkCreation(input: PlotInput): CreationProblem[] {
   const t = allText(input);
   const problems: CreationProblem[] = [];
-  if ([...MINOR_WORDS, ...SCHOOL_WORDS].some((w) => t.includes(w)) || MINOR_AGE.test(t)) problems.push("minor");
+  const present = t.replace(PAST_SCHOOL, "");
+  if (MINOR_WORDS.some((w) => t.includes(w)) || SCHOOL_WORDS.some((w) => present.includes(w)) || MINOR_AGE.test(t)) problems.push("minor");
   if (SEXUAL_WORDS.some((w) => t.includes(w))) problems.push("sexual");
   if (EXPLICIT_WORDS.some((w) => t.includes(w))) problems.push("explicit");
   return problems;
