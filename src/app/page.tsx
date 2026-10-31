@@ -7,6 +7,7 @@ import { Shelf } from "@/components/Shelf";
 import { UgcShelves } from "@/components/UgcShelves";
 import { UserName } from "@/components/UserName";
 import { PLOTS } from "@/lib/characters";
+import { xConfig } from "@/lib/x";
 import Link from "next/link";
 import { PenIcon } from "@/components/icons";
 
@@ -28,6 +29,17 @@ export default function Home() {
         </div>
       </header>
       <Featured plots={PLOTS.filter((p) => p.featured)} />
+      {/* X のキーが入っているときだけ、「Xから生まれる彼」の入口を出す */}
+      {xConfig() && (
+        <Link href="/x" className="press mx-5 mt-5 flex items-center gap-3 rounded-2xl bg-night-2 px-4 py-3.5">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-paper text-[1.1rem] font-black text-night">X</span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[0.95rem] font-black">Xから生まれる彼</span>
+            <span className="block text-[0.75rem] leading-5 text-mist">あなたの投稿から、あなたに刺さる彼をAIがつくります</span>
+          </span>
+          <span className="text-[0.75rem] font-bold text-brand">診断する ›</span>
+        </Link>
+      )}
       <ForYou />
       <UgcShelves />
       <Shelf title="学園もの" plots={PLOTS.filter((p) => p.tags.includes("大学"))} />

@@ -79,6 +79,21 @@ const SCHEMA = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_user_plots_status ON user_plots(status, updated_at)`,
   `CREATE INDEX IF NOT EXISTS idx_user_plots_session ON user_plots(session_id, updated_at)`,
+  // 「Xから生まれる彼」の結果。投稿とトークンは保存せず、作ったもの（タイプ・ツッコミ・彼の作品のID）だけを残す。
+  // x_user は X のユーザーIDのハッシュ（同じ人が続けて診断したとき、投稿を読み直さずに前の結果を出すため）
+  `CREATE TABLE IF NOT EXISTS x_results (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    x_user TEXT NOT NULL,
+    handle TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'working',
+    data TEXT NOT NULL DEFAULT '{}',
+    error TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_x_results_user ON x_results(x_user, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_x_results_created ON x_results(created_at)`,
   // 作品のキャラに登録した画像（正方形の小さい絵。作る画面で切り抜いてから送る）
   `CREATE TABLE IF NOT EXISTS ugc_images (
     id TEXT PRIMARY KEY,

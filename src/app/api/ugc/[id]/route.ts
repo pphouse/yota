@@ -1,9 +1,9 @@
 import { after } from "next/server";
 import { z } from "zod";
-import { generateJacket, jacketEnabled } from "@/lib/jacket";
+import { jacketEnabled } from "@/lib/jacket";
 import { getSession } from "@/lib/session";
 import { logEvent } from "@/lib/store";
-import { countRecent, deleteUgc, getUgc, setJacket, setUgcStatus, updateUgc } from "@/lib/ugc";
+import { countRecent, deleteUgc, drawJacket, getUgc, setUgcStatus, updateUgc } from "@/lib/ugc";
 import { checkCreation, missingItems, PlotInput, PROBLEM_MESSAGE, sanitize } from "@/lib/ugc-schema";
 
 // 題名を変えたらジャケットの絵を作り直す（1分ほどかかる）
@@ -50,18 +50,7 @@ export async function PUT(req: Request, ctx: RouteContext<"/api/ugc/[id]">) {
   const redraw = jacketEnabled() && (input.title !== entry.input.title || entry.meta.jacketStatus === "failed");
   await updateUgc(id, input, { status, jacketStatus: redraw ? "pending" : undefined });
   await logEvent(session.id, "ugc_edit", { id, redraw });
-  if (redraw) {
-    after(async () => {
-      const next = await getUgc(id);
-      if (!next) return;
-      try {
-        await setJacket(id, await generateJacket(next.plot), "ready");
-      } catch (e) {
-        console.error("jacket", id, e);
-        await setJacket(id, null, "failed");
-      }
-    });
-  }
+  if (redraw) after(() => drawJacket(id));
   return Response.json({ ok: true, status });
 }
 

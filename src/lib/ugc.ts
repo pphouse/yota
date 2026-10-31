@@ -5,6 +5,7 @@
  */
 import { getPlot, type Plot } from "./characters";
 import { query, run } from "./db";
+import { generateJacket } from "./jacket";
 import { isUgcId, PlotInput, toPlot, UGC_PREFIX } from "./ugc-schema";
 
 export type UgcStatus = "private" | "pending" | "public" | "removed";
@@ -106,6 +107,18 @@ export async function setUgcStatus(id: string, status: UgcStatus): Promise<void>
 
 export async function setJacket(id: string, image: Uint8Array | null, status: JacketStatus): Promise<void> {
   await run("UPDATE user_plots SET jacket = ?, jacket_status = ?, updated_at = ? WHERE id = ?", [image, status, Date.now(), id]);
+}
+
+/** ジャケットの絵を作って保存する（1分ほどかかる。返事を返したあとに after() の中で呼ぶ） */
+export async function drawJacket(id: string): Promise<void> {
+  const entry = await getUgc(id);
+  if (!entry) return;
+  try {
+    await setJacket(id, await generateJacket(entry.plot), "ready");
+  } catch (e) {
+    console.error("jacket", id, e);
+    await setJacket(id, null, "failed");
+  }
 }
 
 export async function getJacket(id: string): Promise<Uint8Array | null> {

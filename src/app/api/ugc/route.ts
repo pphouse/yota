@@ -1,8 +1,8 @@
 import { after } from "next/server";
-import { generateJacket, jacketEnabled } from "@/lib/jacket";
+import { jacketEnabled } from "@/lib/jacket";
 import { getSession } from "@/lib/session";
 import { logEvent } from "@/lib/store";
-import { countRecent, createUgc, getUgc, listUgc, setJacket } from "@/lib/ugc";
+import { countRecent, createUgc, drawJacket, listUgc } from "@/lib/ugc";
 import { checkCreation, missingItems, PlotInput, PROBLEM_MESSAGE, sanitize } from "@/lib/ugc-schema";
 import { fillPlot } from "@/lib/username";
 
@@ -45,17 +45,6 @@ export async function POST(req: Request) {
   const withJacket = jacketEnabled();
   const id = await createUgc(session.id, session.name || "名無し", input, withJacket ? "pending" : "none");
   await logEvent(session.id, "ugc_create", { id, viewpoints: input.viewpoints.join(",") });
-  if (withJacket) {
-    after(async () => {
-      const entry = await getUgc(id);
-      if (!entry) return;
-      try {
-        await setJacket(id, await generateJacket(entry.plot), "ready");
-      } catch (e) {
-        console.error("jacket", id, e);
-        await setJacket(id, null, "failed");
-      }
-    });
-  }
+  if (withJacket) after(() => drawJacket(id));
   return Response.json({ id });
 }
