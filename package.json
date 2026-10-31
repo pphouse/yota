@@ -13,6 +13,14 @@
     "ugc": "jiti scripts/ugc.mts"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/push-notifications": "^8.1.3",
+    "@capacitor/share": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
     "@fontsource/noto-sans-jp": "^5.3.1",
     "@libsql/client": "^0.18.0",
     "next": "16.4.3",
@@ -21,6 +29,9 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/ios": "^8.6.0",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^22.20.5",
     "@types/react": "^19",

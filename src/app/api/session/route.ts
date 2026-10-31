@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { MIN_AGE, ageFrom, isValidBirth } from "@/lib/age";
-import { createSession, getSession, setSessionName } from "@/lib/session";
+import { cookies } from "next/headers";
+import { deleteAccount } from "@/lib/account";
+import { createSession, getSession, SESSION_COOKIE, setSessionName } from "@/lib/session";
 import { listPlayedPlots, logEvent } from "@/lib/store";
 import { getUsage } from "@/lib/usage";
 import { normalizeRef } from "@/lib/ref";
@@ -47,4 +49,12 @@ export async function PATCH(req: Request) {
   await setSessionName(session.id, name);
   await logEvent(session.id, "name_set", { length: Array.from(name).length });
   return Response.json({ session: { isMinor: session.isMinor, name } });
+}
+
+/** 退会：このセッションのデータをすべて消し、cookie も消す。元に戻せない */
+export async function DELETE() {
+  const session = await getSession();
+  if (session) await deleteAccount(session.id);
+  (await cookies()).delete(SESSION_COOKIE);
+  return Response.json({ ok: true });
 }
