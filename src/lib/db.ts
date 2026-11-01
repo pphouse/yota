@@ -102,6 +102,29 @@ const SCHEMA = [
     data BLOB NOT NULL,
     created_at INTEGER NOT NULL
   )`,
+  // 文章AIの呼び出し1回ごとの記録（原価を測るため）。会話の中身は残さない。
+  // トークン数が分からない呼び出し（途中で止めた等）は NULL のまま、文字数だけ残す
+  `CREATE TABLE IF NOT EXISTS llm_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT,
+    purpose TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL DEFAULT '',
+    tier TEXT NOT NULL DEFAULT '',
+    effort TEXT NOT NULL DEFAULT '',
+    input_tokens INTEGER,
+    cached_tokens INTEGER,
+    output_tokens INTEGER,
+    reasoning_tokens INTEGER,
+    reasoning_chars INTEGER NOT NULL DEFAULT 0,
+    output_chars INTEGER NOT NULL DEFAULT 0,
+    cost_usd REAL,
+    ms INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_llm_usage_created ON llm_usage(created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_llm_usage_session ON llm_usage(session_id, created_at)`,
 ];
 
 // あとから足した列。作成済みのDBにも足す（すでにあればエラーになるので無視する）

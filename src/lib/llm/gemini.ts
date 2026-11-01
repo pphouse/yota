@@ -29,10 +29,22 @@ export class GeminiProvider implements LLMProvider {
     if (!res.ok || !res.body) {
       throw new LLMError(`Gemini API error: ${res.status} ${(await res.text()).slice(0, 300)}`, res.status);
     }
+    req.onUsage?.({ model });
     for await (const data of readSSE(res.body)) {
       const chunk = JSON.parse(data) as {
         candidates?: { content?: { parts?: { text?: string }[] } }[];
+        usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number; cachedContentTokenCount?: number };
       };
+      const u = chunk.usageMetadata;
+      if (u) {
+        // Gemini は考えた分（thoughts）を出力とは別に数えるので、出力の合計に足す
+        req.onUsage?.({
+          inputTokens: u.promptTokenCount,
+          cachedTokens: u.cachedContentTokenCount,
+          outputTokens: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0),
+          reasoningTokens: u.thoughtsTokenCount,
+        });
+      }
       const parts = chunk.candidates?.[0]?.content?.parts ?? [];
       for (const p of parts) if (p.text) yield p.text;
     }

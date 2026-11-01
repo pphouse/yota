@@ -1,6 +1,8 @@
 import { readSSE } from "./sse";
 import { LLMError, type GenerateRequest, type LLMProvider } from "./types";
 
+type AnthropicUsage = { input_tokens?: number; output_tokens?: number; cache_read_input_tokens?: number; cache_creation_input_tokens?: number };
+
 // https://platform.claude.com/docs/en/build-with-claude/streaming
 const ENDPOINT = "https://api.anthropic.com/v1/messages";
 
@@ -32,12 +34,24 @@ export class AnthropicProvider implements LLMProvider {
     if (!res.ok || !res.body) {
       throw new LLMError(`Anthropic API error: ${res.status} ${await safeText(res)}`, res.status);
     }
+    req.onUsage?.({ model: this.models[req.tier] });
     for await (const data of readSSE(res.body)) {
       const event = JSON.parse(data) as {
         type: string;
         delta?: { type: string; text?: string };
         error?: { message?: string };
+        message?: { usage?: AnthropicUsage };
+        usage?: AnthropicUsage;
       };
+      // 入力は message_start、出力は message_delta で届く
+      const u = event.type === "message_start" ? event.message?.usage : event.type === "message_delta" ? event.usage : undefined;
+      if (u) {
+        req.onUsage?.({
+          ...(u.input_tokens !== undefined ? { inputTokens: u.input_tokens + (u.cache_read_input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) } : {}),
+          ...(u.cache_read_input_tokens !== undefined ? { cachedTokens: u.cache_read_input_tokens } : {}),
+          ...(u.output_tokens !== undefined ? { outputTokens: u.output_tokens } : {}),
+        });
+      }
       if (event.type === "content_block_delta" && event.delta?.type === "text_delta" && event.delta.text) {
         yield event.delta.text;
       } else if (event.type === "error") {
