@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { blockedAuthors } from "@/lib/account";
 import { jacketEnabled } from "@/lib/jacket";
 import { getSession } from "@/lib/session";
 import { logEvent } from "@/lib/store";
@@ -21,9 +22,12 @@ export async function GET(req: Request) {
     const items = await listUgc({ sessionId: session.id });
     return Response.json({ items: items.map(({ plot, meta }) => ({ plot: fillPlot(plot, ""), meta })) });
   }
-  // 一覧に出す文章の {{user}} は「あなた」にする
-  const items = await listUgc({ status: "public" });
-  return Response.json({ items: items.map(({ plot, meta }) => ({ plot: fillPlot(plot, ""), meta })) });
+  // 一覧に出す文章の {{user}} は「あなた」にする。ブロックした作者の作品は出さない
+  const [items, session] = await Promise.all([listUgc({ status: "public" }), getSession()]);
+  const blocked = session ? await blockedAuthors(session.id) : new Set<string>();
+  return Response.json({
+    items: items.filter((e) => !blocked.has(e.sessionId)).map(({ plot, meta }) => ({ plot: fillPlot(plot, ""), meta })),
+  });
 }
 
 /** 作品を保存する。リンクを知っている人が遊べる状態（private）で作り、ジャケットの絵はあとから作る */

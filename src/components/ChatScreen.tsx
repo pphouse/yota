@@ -16,6 +16,7 @@ import { RATING_AFTER_TURNS } from "@/lib/feedback";
 import { Typewriter } from "@/lib/typewriter";
 import { plotPath } from "@/lib/ugc-schema";
 import { fillUser, nameInProse } from "@/lib/username";
+import { FeedbackSheet } from "@/components/FeedbackSheet";
 
 type UIMessage = {
   key: string;
@@ -480,6 +481,10 @@ export function ChatScreen() {
                             カードにする
                           </button>
                         )}
+                        {/* AIの返答に問題があったときに、アプリから出ずに報告できるようにする（ストアの審査でも求められる） */}
+                        <span className="self-center pl-1 text-[0.75rem] text-mist">
+                          <FeedbackSheet label="報告" defaultCategory="report" context={`会話：${conversationId ?? "-"} / 返答：${m.id}`} />
+                        </span>
                       </div>
                     )}
                   </>

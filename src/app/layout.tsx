@@ -4,6 +4,7 @@ import "@fontsource/noto-sans-jp/500.css";
 import "@fontsource/noto-sans-jp/700.css";
 import "@fontsource/noto-sans-jp/900.css";
 import "./globals.css";
+import { NativeBridge } from "@/components/NativeBridge";
 import { RefCapture } from "@/components/RefCapture";
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ja" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <RefCapture />
+        <NativeBridge />
         {children}
       </body>
     </html>

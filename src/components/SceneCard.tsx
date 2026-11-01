@@ -5,6 +5,7 @@ import type { Plot, Viewpoint } from "@/lib/characters";
 import { LOGO_MOON, LOGO_VIEWBOX, LOGO_WORD } from "@/components/Logo";
 import { track } from "@/lib/client";
 import { pickQuote } from "@/lib/story";
+import { isNativeApp, shareImageNative } from "@/lib/native";
 
 const W = 1080;
 const H = 1350;
@@ -145,6 +146,8 @@ export function SceneCard({
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [url, setUrl] = useState<string | null>(null);
+  // アプリの中では「画像を保存」は共有シートから選ぶので、ボタンを1つにする（開いてから出す部品なので、最初から判定してよい）
+  const [native] = useState(() => isNativeApp());
   const quote = pickQuote(text);
 
   useEffect(() => {
@@ -187,6 +190,11 @@ export function SceneCard({
     if (!canvas) return;
     const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/png"));
     if (!blob) return;
+    if (isNativeApp()) {
+      // アプリの中：端末の共有シート（「画像を保存」もここから選べる）
+      if (await shareImageNative(blob, `yota-${plot.id}.png`, `${tweet}\n${link}`)) track("card_share", { plotId: plot.id, via: "app" });
+      return;
+    }
     const file = new File([blob], `yota-${plot.id}.png`, { type: "image/png" });
     if (navigator.canShare?.({ files: [file] })) {
       try {
@@ -220,11 +228,12 @@ export function SceneCard({
           className="aspect-[4/5] w-full rounded-2xl bg-night-3 shadow-[0_14px_30px_-14px_rgba(0,0,0,0.8)]"
           aria-label={quote}
         />
-        <div className="mt-4 grid grid-cols-2 gap-3">
+        <div className={`mt-4 grid gap-3 ${native ? "grid-cols-1" : "grid-cols-2"}`}>
           <button onClick={share} className="press btn-brand rounded-full py-3.5 text-sm">
             共有する
           </button>
           <a
+            hidden={native}
             href={url ?? undefined}
             download={`yota-${plot.id}.png`}
             onClick={() => track("card_download", { plotId: plot.id })}

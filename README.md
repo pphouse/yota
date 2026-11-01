@@ -70,6 +70,16 @@ OPENAI_MODEL_FAST=gpt-oss-120b   # ほかは上と同じ
 
 Anthropic と Gemini の実際のAPIでの動作確認はまだしていません。
 
+## iOS / Android アプリ
+
+Capacitor で、本番の yotachat.app を読み込むアプリにしています。共有・通知・戻るボタン・外部リンクはネイティブで動き、Web を直せばアプリにも反映されます。会社の準備から審査に出すまでの手順は [docs/app-release.md](docs/app-release.md) にまとめています。
+
+```bash
+npx cap sync          # 設定とプラグインを ios/ と android/ に反映する
+npx cap open ios      # Xcode で開く（Mac）
+npx cap open android  # Android Studio で開く
+```
+
 ## 本番公開（Vercel）
 
 1. Vercel でこのリポジトリをインポートする。

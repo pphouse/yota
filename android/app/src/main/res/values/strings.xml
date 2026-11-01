@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">yota</string>
+    <string name="title_activity_main">yota</string>
+    <string name="package_name">app.yotachat</string>
+    <string name="custom_url_scheme">app.yotachat</string>
+</resources>

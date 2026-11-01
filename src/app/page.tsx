@@ -9,7 +9,7 @@ import { UserName } from "@/components/UserName";
 import { PLOTS } from "@/lib/characters";
 import { xConfig } from "@/lib/x";
 import Link from "next/link";
-import { PenIcon } from "@/components/icons";
+import { MenuIcon, PenIcon } from "@/components/icons";
 
 export default function Home() {
   return (
@@ -25,6 +25,9 @@ export default function Home() {
               つくる
             </Link>
             <UserName />
+            <Link href="/settings" aria-label="設定" className="press grid size-9 place-items-center rounded-full text-mist hover:text-paper">
+              <MenuIcon size={20} />
+            </Link>
           </div>
         </div>
       </header>
