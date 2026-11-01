@@ -24,7 +24,7 @@ export type GenerateRequest = {
   onUsage?: (u: UsageReport) => void;
 };
 
-export type Purpose = "chat" | "summary" | "suggest" | "ugc_assist" | "ugc_draft" | "ugc_try" | "x_analyze";
+export type Purpose = "chat" | "summary" | "suggest" | "ugc_assist" | "ugc_draft" | "ugc_try" | "ugc_import" | "x_analyze";
 
 /** プロバイダが返すトークン数。分からない項目は入れない */
 export type UsageReport = {
