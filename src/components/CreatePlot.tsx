@@ -96,6 +96,7 @@ export function CreatePlot() {
   const [source, setSource] = useState("");
   const [original, setOriginal] = useState(false);
   const [importNotes, setImportNotes] = useState<string[] | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
   const dirty = useRef(false);
   const draftRef = useRef(draft);
 
@@ -201,14 +202,14 @@ export function CreatePlot() {
   }
 
   async function importDraft() {
-    setError(null);
+    setImportError(null);
     setPhase("drafting");
     const r = await api<{ draft?: PlotInput; notes?: string[]; error?: string }>("/api/ugc/import", {
       method: "POST",
       body: JSON.stringify({ source, viewpoint: startViewpoint, original }),
     });
     if (!r.ok || !r.data.draft) {
-      setError(r.data.error ?? "引っ越せませんでした。もう一度お試しください");
+      setImportError(r.data.error ?? "引っ越せませんでした。もう一度お試しください");
       setPhase("start");
       return;
     }
@@ -273,6 +274,84 @@ export function CreatePlot() {
     );
 
   const mode: Viewpoint = draft.viewpoints.includes("watch") ? "watch" : "self";
+
+  // 募集の投稿などから ?import=1 で来た人には、引っ越しの欄をいちばん上に出す
+  const importFirst = importParam === "1";
+  const viewpointChoice = (id: string, label: string) => (
+    <Choice
+      id={id}
+      label={label}
+      value={startViewpoint}
+      onChange={setStartViewpoint}
+      options={[
+        { value: "self", title: "あなたが主人公", hint: "キャラがあなたに話しかける" },
+        { value: "watch", title: "ふたりを見守る", hint: "ふたり（BL）の会話を眺める" },
+      ]}
+    />
+  );
+  const sourceLength = source.trim().length;
+  const overLimit = sourceLength > IMPORT_MAX;
+  const importCard = (
+    <div id="import" className="mt-6 rounded-3xl bg-night-2 p-4">
+      <button onClick={() => setImportOpen((o) => !o)} aria-expanded={importOpen} className="press w-full text-left">
+        <span className="block text-[0.95rem] font-black">ほかのアプリから引っ越す</span>
+        <span className="mt-1 block text-[0.78rem] leading-5 text-mist">
+          ほかのAIチャットで作った自分の作品の設定を貼ると、yota の作品に整えます。{"{{char}}"}・{"{{user}}"} の書き方もそのまま使えます。
+        </span>
+      </button>
+      {importOpen && (
+        <div className="mt-3">
+          <p className="text-[0.75rem] font-bold text-paper/90">貼るもの（あるものだけで大丈夫です）</p>
+          <ul className="mt-1 grid grid-cols-2 gap-x-3 text-[0.72rem] leading-5 text-mist">
+            <li>・題名と紹介文</li>
+            <li>・プロンプト（キャラ設定・世界観）</li>
+            <li>・イントロ（最初のメッセージ）</li>
+            <li>・状況例（会話の例）</li>
+            <li>・トークプロフィール</li>
+            <li>・設定集</li>
+          </ul>
+          <textarea
+            aria-label="作品の設定"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            // 上限を超えても黙って切らずに入れて、超えたことを知らせる（切ると、最後に貼ったイントロなどが消える）
+            maxLength={IMPORT_MAX * 3}
+            rows={8}
+            placeholder={"それぞれの欄の文章を、続けてまとめて貼ってください。"}
+            className={inputClass}
+          />
+          <p className={`mt-1 text-right text-[0.72rem] tabular-nums ${overLimit ? "font-bold text-amber" : "text-mist"}`}>
+            {sourceLength.toLocaleString()} / {IMPORT_MAX.toLocaleString()}
+          </p>
+          {overLimit && (
+            <p role="alert" className="mt-1 rounded-xl bg-amber/10 px-3 py-2 text-[0.78rem] leading-5 text-amber">
+              {IMPORT_MAX.toLocaleString()}字を超えています（あと{(sourceLength - IMPORT_MAX).toLocaleString()}字）。設定集や状況例を少し減らしてから引っ越してください。
+            </p>
+          )}
+          {viewpointChoice("import-viewpoint", "この作品の遊び方")}
+          <label className="mt-4 flex items-start gap-2.5 text-[0.8rem] leading-6">
+            <input type="checkbox" checked={original} onChange={(e) => setOriginal(e.target.checked)} className="mt-1.5 size-4 shrink-0 accent-[var(--color-brand)]" />
+            <span>自分が作ったオリジナルの作品です（ほかの人の作品や、アニメ・ゲーム・VTuber・実在の人物をもとにした作品ではありません）</span>
+          </label>
+          <p className="mt-2 text-[0.72rem] leading-5 text-mist">
+            登場人物は20歳以上に、性的な表現は省いて移します。変えたところは、移したあとにお知らせします。キャラの画像は移せないので、引っ越したあとに登場人物の欄で登録してください。貼った文章は整えるためにAIに送りますが、yota には保存しません。できた作品も、保存するまではあなたの端末の中だけにあります。
+          </p>
+          {importError && (
+            <p role="alert" className="mt-3 text-sm text-amber">
+              {importError}
+            </p>
+          )}
+          <button
+            onClick={importDraft}
+            disabled={phase === "drafting" || !original || sourceLength < IMPORT_MIN || overLimit}
+            className="press btn-brand mt-3 w-full rounded-2xl py-3.5 text-[0.95rem]"
+          >
+            {phase === "drafting" ? "引っ越しています…" : "この設定で引っ越す"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
   const editing = phase === "edit" || phase === "saving";
   const preview = {
     title: draft.title || "題名",
@@ -322,92 +401,96 @@ export function CreatePlot() {
                   </div>
                 </div>
               )}
-              <h1 className="text-[1.4rem] font-black leading-snug">どんな物語をつくる？</h1>
-              <p className="mt-2 text-[0.85rem] leading-6 text-mist">AIに下書きしてもらうことも、白紙から書くこともできます。どの項目も、あとで「AIで考える」で案を出せます。</p>
-              <Choice
-                id="start-viewpoint"
-                label="遊び方"
-                value={startViewpoint}
-                onChange={setStartViewpoint}
-                options={[
-                  { value: "self", title: "あなたが主人公", hint: "キャラがあなたに話しかける" },
-                  { value: "watch", title: "ふたりを見守る", hint: "ふたり（BL）の会話を眺める" },
-                ]}
-              />
-              <div className="mt-6 rounded-3xl bg-night-2 p-4">
-                <p className="text-[0.95rem] font-black">アイデアから下書き</p>
-                <p className="mt-1 text-[0.78rem] leading-5 text-mist">一行書くと、題名・キャラ・最初の一言まで、AIが数秒で下書きします。</p>
-                <textarea
-                  aria-label="アイデア"
-                  value={idea}
-                  onChange={(e) => setIdea(e.target.value)}
-                  maxLength={200}
-                  rows={3}
-                  placeholder={EXAMPLES[startViewpoint][0]}
-                  className={inputClass}
-                />
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {EXAMPLES[startViewpoint].map((ex) => (
-                    <button key={ex} onClick={() => setIdea(ex)} className="press rounded-full bg-night-3 px-3 py-1.5 text-[0.72rem] font-bold text-mist hover:text-paper">
-                      {ex}
-                    </button>
-                  ))}
-                </div>
-                {error && (
-                  <p role="alert" className="mt-3 text-sm text-amber">
-                    {error}
-                  </p>
-                )}
-                <button onClick={makeDraft} disabled={phase === "drafting" || idea.trim().length < 4} className="press btn-brand mt-4 w-full rounded-2xl py-3.5 text-[0.95rem]">
-                  {phase === "drafting" ? "下書きを作っています…" : "AIに下書きしてもらう"}
-                </button>
-              </div>
-              <div id="import" className="mt-3 rounded-3xl bg-night-2 p-4">
-                <button onClick={() => setImportOpen((o) => !o)} aria-expanded={importOpen} className="press w-full text-left">
-                  <span className="block text-[0.95rem] font-black">ほかのアプリから引っ越す</span>
-                  <span className="mt-1 block text-[0.78rem] leading-5 text-mist">
-                    ほかのAIチャットで作った自分の作品の設定を貼ると、yota の作品に整えます。{"{{char}}"}・{"{{user}}"} の書き方もそのまま使えます。
-                  </span>
-                </button>
-                {importOpen && (
-                  <div className="mt-3">
+              <h1 className="text-[1.4rem] font-black leading-snug">{importFirst ? "作品を引っ越す" : "どんな物語をつくる？"}</h1>
+              <p className="mt-2 text-[0.85rem] leading-6 text-mist">
+                {importFirst
+                  ? "貼るだけで、キャラの設定・最初のメッセージ・口調をできるだけそのまま移します。"
+                  : "AIに下書きしてもらうことも、白紙から書くこともできます。どの項目も、あとで「AIで考える」で案を出せます。"}
+              </p>
+              {importFirst ? (
+                <>
+                  {importCard}
+                  <p className="mt-10 text-[0.8rem] font-bold text-mist">ほかの作り方</p>
+                  {viewpointChoice("start-viewpoint", "遊び方")}
+                  <div className="mt-6 rounded-3xl bg-night-2 p-4">
+                    <p className="text-[0.95rem] font-black">アイデアから下書き</p>
+                    <p className="mt-1 text-[0.78rem] leading-5 text-mist">一行書くと、題名・キャラ・最初の一言まで、AIが数秒で下書きします。</p>
                     <textarea
-                      aria-label="作品の設定"
-                      value={source}
-                      onChange={(e) => setSource(e.target.value)}
-                      maxLength={IMPORT_MAX}
-                      rows={8}
-                      placeholder={"キャラクター設定、プロット、世界観、最初のメッセージ、トークプロフィールなどを、まとめて貼ってください。"}
+                      aria-label="アイデア"
+                      value={idea}
+                      onChange={(e) => setIdea(e.target.value)}
+                      maxLength={200}
+                      rows={3}
+                      placeholder={EXAMPLES[startViewpoint][0]}
                       className={inputClass}
                     />
-                    <p className="mt-1 text-right text-[0.72rem] text-mist tabular-nums">
-                      {source.trim().length.toLocaleString()} / {IMPORT_MAX.toLocaleString()}
-                    </p>
-                    <label className="mt-2 flex items-start gap-2.5 text-[0.8rem] leading-6">
-                      <input type="checkbox" checked={original} onChange={(e) => setOriginal(e.target.checked)} className="mt-1.5 size-4 shrink-0 accent-[var(--color-brand)]" />
-                      <span>自分が作ったオリジナルの作品です（ほかの人の作品や、アニメ・ゲーム・VTuber・実在の人物をもとにした作品ではありません）</span>
-                    </label>
-                    <p className="mt-2 text-[0.72rem] leading-5 text-mist">
-                      登場人物は20歳以上に、性的な表現は省いて移します。変えたところは、移したあとにお知らせします。貼った文章は整えるためにAIに送りますが、yota には保存しません。できた作品も、保存するまではあなたの端末の中だけにあります。
-                    </p>
-                    <button
-                      onClick={importDraft}
-                      disabled={phase === "drafting" || !original || source.trim().length < IMPORT_MIN}
-                      className="press btn-brand mt-3 w-full rounded-2xl py-3.5 text-[0.95rem]"
-                    >
-                      {phase === "drafting" ? "引っ越しています…" : "この設定で引っ越す"}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {EXAMPLES[startViewpoint].map((ex) => (
+                        <button key={ex} onClick={() => setIdea(ex)} className="press rounded-full bg-night-3 px-3 py-1.5 text-[0.72rem] font-bold text-mist hover:text-paper">
+                          {ex}
+                        </button>
+                      ))}
+                    </div>
+                    {error && (
+                      <p role="alert" className="mt-3 text-sm text-amber">
+                        {error}
+                      </p>
+                    )}
+                    <button onClick={makeDraft} disabled={phase === "drafting" || idea.trim().length < 4} className="press btn-brand mt-4 w-full rounded-2xl py-3.5 text-[0.95rem]">
+                      {phase === "drafting" ? "下書きを作っています…" : "AIに下書きしてもらう"}
                     </button>
                   </div>
-                )}
-              </div>
-              <button
-                onClick={() => begin(emptyDraft(startViewpoint), false)}
-                disabled={phase === "drafting"}
-                className="press mt-3 w-full rounded-3xl bg-night-2 px-4 py-4 text-left"
-              >
-                <span className="block text-[0.95rem] font-black">白紙から書く</span>
-                <span className="mt-1 block text-[0.78rem] leading-5 text-mist">自分で全部決めたい人向け。必要な項目は、下に「あと〇つ」と出ます。</span>
-              </button>
+                  <button
+                    onClick={() => begin(emptyDraft(startViewpoint), false)}
+                    disabled={phase === "drafting"}
+                    className="press mt-3 w-full rounded-3xl bg-night-2 px-4 py-4 text-left"
+                  >
+                    <span className="block text-[0.95rem] font-black">白紙から書く</span>
+                    <span className="mt-1 block text-[0.78rem] leading-5 text-mist">自分で全部決めたい人向け。必要な項目は、下に「あと〇つ」と出ます。</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  {viewpointChoice("start-viewpoint", "遊び方")}
+                  <div className="mt-6 rounded-3xl bg-night-2 p-4">
+                    <p className="text-[0.95rem] font-black">アイデアから下書き</p>
+                    <p className="mt-1 text-[0.78rem] leading-5 text-mist">一行書くと、題名・キャラ・最初の一言まで、AIが数秒で下書きします。</p>
+                    <textarea
+                      aria-label="アイデア"
+                      value={idea}
+                      onChange={(e) => setIdea(e.target.value)}
+                      maxLength={200}
+                      rows={3}
+                      placeholder={EXAMPLES[startViewpoint][0]}
+                      className={inputClass}
+                    />
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {EXAMPLES[startViewpoint].map((ex) => (
+                        <button key={ex} onClick={() => setIdea(ex)} className="press rounded-full bg-night-3 px-3 py-1.5 text-[0.72rem] font-bold text-mist hover:text-paper">
+                          {ex}
+                        </button>
+                      ))}
+                    </div>
+                    {error && (
+                      <p role="alert" className="mt-3 text-sm text-amber">
+                        {error}
+                      </p>
+                    )}
+                    <button onClick={makeDraft} disabled={phase === "drafting" || idea.trim().length < 4} className="press btn-brand mt-4 w-full rounded-2xl py-3.5 text-[0.95rem]">
+                      {phase === "drafting" ? "下書きを作っています…" : "AIに下書きしてもらう"}
+                    </button>
+                  </div>
+                  {importCard}
+                  <button
+                    onClick={() => begin(emptyDraft(startViewpoint), false)}
+                    disabled={phase === "drafting"}
+                    className="press mt-3 w-full rounded-3xl bg-night-2 px-4 py-4 text-left"
+                  >
+                    <span className="block text-[0.95rem] font-black">白紙から書く</span>
+                    <span className="mt-1 block text-[0.78rem] leading-5 text-mist">自分で全部決めたい人向け。必要な項目は、下に「あと〇つ」と出ます。</span>
+                  </button>
+                </>
+              )}
               <p className="mt-5 text-xs leading-6 text-mist/80">登場人物は全員18歳以上の架空の人物にしてください。実在の人物や、ほかの作品のキャラクターは使えません。性的な内容は書けません。</p>
             </section>
           )}
