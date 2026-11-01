@@ -54,3 +54,42 @@ describe("ほかのアプリからの引っ越し（importPlot）", () => {
     expect(r.ok).toBe(false);
   });
 });
+
+describe("引っ越しの下書きの整え（AIの出力の小さなはみ出しで失敗しない）", () => {
+  it("閉じ括弧が欠けていても読み、タグの数・知らないジャンル名・長すぎる文を整えて通す", async () => {
+    const messy = JSON.stringify({ ...base, tags: ["a", "b", "c", "d", "e", "f", "g"], genres: ["fantasy", "romance"], hooks: ["1", "2", "3", "4", "5"] }).replace(/\]\}$/, "}");
+    const r = await importPlot(scripted([messy.slice(0, -1) + "}"]), source, "self");
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.input.tags).toHaveLength(6);
+    expect(r.input.genres).toEqual(["fantasy"]);
+    expect(r.input.hooks).toHaveLength(4);
+  });
+
+  it("状況例の {{user}}: / {{char}}: の会話を、口調の例に入れる", async () => {
+    const withDialogue = `${source}\n【状況例】\n{{user}}: いつもの\n{{char}}: ……もう淹れてる\n{{user}}: ありがとう\n{{char}}: 冷めるぞ`;
+    const r = await importPlot(scripted([JSON.stringify(base)]), withDialogue, "self");
+    expect(r.ok && r.input.personas[0].examples).toEqual([
+      { user: "いつもの", reply: "……もう淹れてる" },
+      { user: "ありがとう", reply: "冷めるぞ" },
+    ]);
+  });
+
+  it("お知らせの項目名は画面の言葉にし、外国語の混ざったお知らせは出さない", async () => {
+    const r = await importPlot(scripted([JSON.stringify({ ...base, notes: ["3人目は setting の中で触れました", "self视角で配置しました"] })]), source, "self");
+    expect(r.ok && r.notes).toEqual(["3人目は 舞台・関係 の中で触れました"]);
+  });
+
+  it("見守りの作品は、元にない「あなたが主人公」の版を作らせない", async () => {
+    const ai = scripted([JSON.stringify(toInput(getPlot("dorm-rivals")!))]);
+    await importPlot(ai, source, "watch");
+    expect(ai.calls[0].system).toContain('viewpoints は ["watch"]');
+  });
+
+  it("作り直させるときは、引っかかった言葉を伝える", async () => {
+    const minor = { ...base, setting: "高校の教室で、放課後に話す二人。" };
+    const ai = scripted([JSON.stringify(minor), JSON.stringify(base)]);
+    await importPlot(ai, source, "self");
+    expect(ai.calls[1].messages.at(-1)?.content).toContain("「高校」");
+  });
+});
