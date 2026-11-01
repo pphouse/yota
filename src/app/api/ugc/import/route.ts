@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "今日の引っ越しの回数の上限に達しました。また明日お試しください" }, { status: 429 });
   }
   await logEvent(session.id, "ugc_import", { viewpoint: parsed.data.viewpoint, length: parsed.data.source.length });
-  const result = await importPlot(getProvider(), parsed.data.source, parsed.data.viewpoint).catch(() => null);
+  const result = await importPlot(getProvider({ sessionId: session.id, purpose: "ugc_import" }), parsed.data.source, parsed.data.viewpoint).catch(() => null);
   if (!result) return Response.json({ error: "下書きを作れませんでした。もう一度お試しください" }, { status: 502 });
   if (!result.ok) return Response.json({ error: result.error, problems: result.problems }, { status: 422 });
   return Response.json({ draft: result.input, notes: result.notes ?? [] });
