@@ -60,10 +60,10 @@ export async function POST(req: Request) {
     userTurns: messages.filter((m) => m.role === "user").length,
     userName,
   });
-  const provider = getProvider();
+  const provider = getProvider({ sessionId: session.id, purpose: "ugc_try" });
   let reply = "";
   for (let attempt = 0; attempt < 2 && !reply; attempt++) {
-    reply = (await generateText(provider, { system, messages: toApiMessages(history), tier: "fast", purpose: "chat" }).catch(() => "")).trim();
+    reply = (await generateText(provider, { system, messages: toApiMessages(history), tier: "fast", purpose: "ugc_try" }).catch(() => "")).trim();
     if (hasForeignText(reply)) reply = stripForeignScripts(reply).trim();
   }
   if (!reply) return Response.json({ error: "返事を作れませんでした。もう一度お試しください" }, { status: 502 });
