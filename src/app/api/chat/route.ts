@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const provider = getProvider();
+  const provider = getProvider({ sessionId: session.id });
   const encoder = new TextEncoder();
   let finish!: (done: Extract<ChatEvent, { t: "done" }> | undefined) => void;
   const finished = new Promise<Extract<ChatEvent, { t: "done" }> | undefined>((r) => (finish = r));

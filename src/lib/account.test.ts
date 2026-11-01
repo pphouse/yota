@@ -31,6 +31,9 @@ describe("退会（データの削除）", () => {
       await savePushToken(id, `token-${id}-0123456789abcdef`, "ios");
     }
     await addBlock("other", "me", "わたし");
+    await run(
+      "INSERT INTO llm_usage (session_id, purpose, provider, ms, status, created_at) VALUES ('me', 'chat', 'mock', 1, 'ok', 0), ('other', 'chat', 'mock', 1, 'ok', 0)",
+    );
 
     await deleteAccount("me");
 
@@ -43,6 +46,9 @@ describe("退会（データの削除）", () => {
     expect(await count("push_tokens", "session_id = ?", ["me"])).toBe(0);
     // 自分をブロックしていた記録も残さない
     expect(await count("blocks")).toBe(0);
+    // 原価の記録は数として残し、本人との紐づけだけ外す
+    expect(await count("llm_usage")).toBe(2);
+    expect(await count("llm_usage", "session_id = ?", ["me"])).toBe(0);
     expect(await count("sessions", "id = ?", ["other"])).toBe(1);
     expect(await count("user_plots", "session_id = ?", ["other"])).toBe(1);
   });

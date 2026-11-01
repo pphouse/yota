@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "今日の下書きの回数の上限に達しました。また明日お試しください" }, { status: 429 });
   }
   await logEvent(session.id, "ugc_draft", { viewpoint: parsed.data.viewpoint });
-  const result = await draftPlot(getProvider(), parsed.data.idea, parsed.data.viewpoint).catch(() => null);
+  const result = await draftPlot(getProvider({ sessionId: session.id, purpose: "ugc_draft" }), parsed.data.idea, parsed.data.viewpoint).catch(() => null);
   if (!result) return Response.json({ error: "下書きを作れませんでした。もう一度お試しください" }, { status: 502 });
   if (!result.ok) return Response.json({ error: result.error, problems: result.problems }, { status: 422 });
   return Response.json({ draft: result.input });

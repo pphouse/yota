@@ -2,9 +2,9 @@
  * 一行のアイデアから、作品の下書きを文章AIに作らせる（サーバー専用）。
  * 形は、こちらで作った作品（眠り王子）を例として見せてそろえる。
  */
-import { getPlot, type Plot, type Viewpoint } from "./characters";
+import { GENRES, getPlot, type Plot, type Viewpoint } from "./characters";
 import { generateText, type LLMProvider } from "./llm";
-import { checkCreation, PlotInput, sanitize, type CreationProblem } from "./ugc-schema";
+import { checkCreation, PlotInput, problemWords, sanitize, type CreationProblem } from "./ugc-schema";
 
 /** こちらの作品を、ユーザーの作品の入力の形にする（下書きの例に使う） */
 export function toInput(plot: Plot): PlotInput {
@@ -77,25 +77,99 @@ export function extractJson(text: string): unknown {
     if (end <= start) throw new Error("JSON が閉じていません");
     return JSON.parse(text.slice(start, end + 1));
   } catch (e) {
-    try {
-      return JSON.parse(text.slice(start).trimEnd() + "}");
-    } catch {
-      throw e;
+    // 閉じ括弧（最後の } や、配列の ]）が欠けることがあるので、欠けていそうな形を補って読み直す
+    const body = text.slice(start).trimEnd();
+    for (const t of [body + "}", body + "]}", body.replace(/"\s*\}\s*$/, '"]}'), body.replace(/\}\s*$/, "]}"), body + "}]}"]) {
+      try {
+        return JSON.parse(t);
+      } catch {
+        // 次の形で試す
+      }
     }
+    throw e;
   }
 }
 
-export type DraftResult = { ok: true; input: PlotInput } | { ok: false; error: string; problems?: CreationProblem[] };
+const GENRE_IDS = new Set<string>(GENRES.map((g) => g.id));
+const clip = (v: unknown, max: number) => (typeof v === "string" ? Array.from(v.trim()).slice(0, max).join("") : v);
+const strings = (v: unknown, n: number, len: number) =>
+  Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim() !== "").map((x) => clip(x, len) as string).slice(0, n) : v;
 
-/** 下書きを作る。形が崩れていたり、安全判定に引っかかったりしたら、理由を添えて1回だけ作り直させる */
-export async function draftPlot(provider: LLMProvider, idea: string, viewpoint: Viewpoint): Promise<DraftResult> {
-  const messages: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: `アイデア：${idea}` }];
+/**
+ * AIの出力の、数や長さの決まりから少しはみ出しただけの所を整える（タグが7つ、知らないジャンル名、長すぎる文など）。
+ * ここで落とすと作者には「作れませんでした」としか見えないので、直せるものは直してから確かめる
+ */
+export function normalizeDraft(json: unknown): unknown {
+  if (!json || typeof json !== "object" || Array.isArray(json)) return json;
+  const j = json as Record<string, unknown>;
+  const o = (j.opening ?? {}) as Record<string, unknown>;
+  const s = (j.starterReplies ?? {}) as Record<string, unknown>;
+  return {
+    ...j,
+    title: clip(j.title, 30),
+    catchphrase: clip(j.catchphrase, 60),
+    intro: clip(j.intro, 400),
+    prologue: clip(j.prologue, 200),
+    role: clip(j.role, 120),
+    setting: clip(j.setting, 500),
+    tags: strings(j.tags, 6, 12),
+    genres: Array.isArray(j.genres) ? j.genres.filter((g) => GENRE_IDS.has(String(g))).slice(0, 3) : j.genres,
+    hooks: strings(j.hooks, 4, 100),
+    opening: { self: clip(o.self, 300), watch: clip(o.watch, 400) },
+    starterReplies: { self: strings(s.self, 3, 40), watch: strings(s.watch, 3, 40) },
+    personas: Array.isArray(j.personas)
+      ? j.personas.slice(0, 2).map((raw) => {
+          const p = (raw ?? {}) as Record<string, unknown>;
+          const stats = p.stats && typeof p.stats === "object" ? (p.stats as Record<string, unknown>) : undefined;
+          const statsOk = stats && Object.values(stats).every((v) => typeof v === "number" || typeof v === "string");
+          return {
+            ...p,
+            name: clip(p.name, 20),
+            reading: clip(p.reading, 30),
+            profile: clip(p.profile, 200),
+            personality: clip(p.personality, 300),
+            speech: clip(p.speech, 300),
+            inLove: clip(p.inLove, 200),
+            likes: strings(p.likes, 5, 30),
+            dislikes: strings(p.dislikes, 5, 30),
+            habits: strings(p.habits, 5, 30),
+            topics: strings(p.topics, 6, 80),
+            examples: Array.isArray(p.examples)
+              ? p.examples
+                  .filter((e) => e && typeof e === "object" && (e as { user?: unknown }).user && (e as { reply?: unknown }).reply)
+                  .slice(0, 3)
+                  .map((e) => ({ user: clip((e as { user: string }).user, 150), reply: clip((e as { reply: string }).reply, 150) }))
+              : undefined,
+            mbti: typeof p.mbti === "string" && /^[EI][NS][FT][JP]$/i.test(p.mbti.trim()) ? p.mbti : undefined,
+            color: typeof p.color === "string" && /^#[0-9a-fA-F]{6}$/.test(p.color) ? p.color : undefined,
+            height: Number(p.height) >= 140 && Number(p.height) <= 230 ? p.height : undefined,
+            stats: statsOk ? Object.fromEntries(Object.entries(stats!).map(([k, v]) => [k, Math.max(0, Math.min(100, Math.round(Number(v) || 0)))])) : undefined,
+          };
+        })
+      : j.personas,
+  };
+}
+
+export type DraftResult = { ok: true; input: PlotInput; notes?: string[] } | { ok: false; error: string; problems?: CreationProblem[] };
+
+/**
+ * 作品の JSON を文章AIに書かせる共通の手順。
+ * 形が崩れていたり、安全判定に引っかかったりしたら、理由を添えて1回だけ作り直させる。
+ * refuse を返されたら（版権ものなど）、その理由で断る。
+ */
+export async function generatePlot(
+  provider: LLMProvider,
+  opts: { system: string; request: string; retry: string; unsafeError: string; attempts?: number },
+): Promise<DraftResult> {
+  const messages: { role: "user" | "assistant"; content: string }[] = [{ role: "user", content: opts.request }];
   let last: DraftResult = { ok: false, error: "下書きを作れませんでした" };
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const out = await generateText(provider, { system: system(viewpoint), messages, tier: "quality", maxTokens: 4000 });
+  for (let attempt = 0; attempt < (opts.attempts ?? 2); attempt++) {
+    const out = await generateText(provider, { system: opts.system, messages, tier: "quality", maxTokens: 4000 });
     let fix = "";
     try {
-      const parsed = PlotInput.safeParse(extractJson(out));
+      const json = extractJson(out) as Record<string, unknown>;
+      if (typeof json?.refuse === "string" && json.refuse.trim()) return { ok: false, error: json.refuse.trim().slice(0, 200) };
+      const parsed = PlotInput.safeParse(normalizeDraft(json));
       if (!parsed.success) {
         fix = `形が正しくありません：${parsed.error.issues
           .slice(0, 5)
@@ -104,14 +178,26 @@ export async function draftPlot(provider: LLMProvider, idea: string, viewpoint: 
       } else {
         const input = sanitize(parsed.data);
         const problems = checkCreation(input);
-        if (problems.length === 0) return { ok: true, input };
-        fix = "未成年を思わせる言葉や、性的な言葉が入っています。登場人物は全員20歳以上・大学以上にし、性的な言葉を使わずに書き直してください。";
-        last = { ok: false, error: "アイデアの内容では作れませんでした。表現を変えてもう一度お試しください。", problems };
+        const notes = Array.isArray(json.notes) ? json.notes.filter((n): n is string => typeof n === "string" && n.trim() !== "").slice(0, 5) : [];
+        if (problems.length === 0) return { ok: true, input, ...(notes.length ? { notes } : {}) };
+        const words = problemWords(JSON.stringify(input));
+        fix = `未成年を思わせる言葉や、性的な言葉が入っています${words.length ? `（${words.map((w) => `「${w}」`).join("")}）` : ""}。登場人物は全員20歳以上・大学以上にし、これらの言葉を使わずに書き直してください。変えたことは notes に書いてください。`;
+        last = { ok: false, error: opts.unsafeError, problems };
       }
     } catch {
       fix = "JSON として読めませんでした。";
     }
-    messages.push({ role: "assistant", content: out.slice(0, 6000) }, { role: "user", content: `${fix}\n同じアイデアで、例と同じ形の JSON だけを出力し直してください。` });
+    messages.push({ role: "assistant", content: out.slice(0, 6000) }, { role: "user", content: `${fix}\n${opts.retry}` });
   }
   return last;
+}
+
+/** 一行のアイデアから下書きを作る */
+export async function draftPlot(provider: LLMProvider, idea: string, viewpoint: Viewpoint): Promise<DraftResult> {
+  return generatePlot(provider, {
+    system: system(viewpoint),
+    request: `アイデア：${idea}`,
+    retry: "同じアイデアで、例と同じ形の JSON だけを出力し直してください。",
+    unsafeError: "アイデアの内容では作れませんでした。表現を変えてもう一度お試しください。",
+  });
 }

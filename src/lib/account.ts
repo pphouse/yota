@@ -4,6 +4,7 @@ import { query, run } from "./db";
  * アカウント（匿名のセッション）と、それにつながるデータをすべて消す。
  * アプリストアの審査で求められる「アプリの中から退会できる」ためのもの。
  * 消すもの：会話・メッセージ・利用時間・記録・ご意見・作った作品と画像・Xの診断結果・通知の登録・ブロック。
+ * 文章AIの原価の記録（llm_usage）は、本人との紐づけを外す。
  */
 export async function deleteAccount(sessionId: string): Promise<void> {
   await run("DELETE FROM messages WHERE conversation_id IN (SELECT id FROM conversations WHERE session_id = ?)", [sessionId]);
@@ -11,6 +12,8 @@ export async function deleteAccount(sessionId: string): Promise<void> {
     await run(`DELETE FROM ${table} WHERE session_id = ?`, [sessionId]);
   }
   await run("DELETE FROM blocks WHERE session_id = ? OR author_session_id = ?", [sessionId, sessionId]);
+  // 文章AIの原価の記録は、会話の中身を持たない数字だけなので、誰のものかの紐づけだけを外して残す（原価の合計が変わらないように）
+  await run("UPDATE llm_usage SET session_id = NULL WHERE session_id = ?", [sessionId]);
   await run("DELETE FROM sessions WHERE id = ?", [sessionId]);
 }
 

@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     return Response.json({ suggestions: [] }, { status: 409 });
   }
 
-  const provider = getProvider();
+  const provider = getProvider({ sessionId: session.id });
   const started = performance.now();
   try {
     const suggestions = await suggestReplies({

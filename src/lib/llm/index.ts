@@ -2,9 +2,10 @@ import { AnthropicProvider } from "./anthropic";
 import { GeminiProvider } from "./gemini";
 import { MockProvider } from "./mock";
 import { OpenAIProvider } from "./openai";
-import type { GenerateRequest, LLMProvider } from "./types";
+import { meteredProvider } from "../llm-usage";
+import type { GenerateRequest, LLMProvider, Purpose } from "./types";
 
-export type { ChatMessage, GenerateRequest, LLMProvider, Tier } from "./types";
+export type { ChatMessage, GenerateRequest, LLMProvider, Purpose, Tier, UsageReport } from "./types";
 
 type Env = Record<string, string | undefined>;
 
@@ -31,6 +32,8 @@ export function createProvider(env: Env = process.env): LLMProvider {
         baseUrl: env.OPENAI_BASE_URL,
         reasoningEffort: env.OPENAI_REASONING_EFFORT,
         briefReasoningEffort: env.OPENAI_SUGGEST_REASONING_EFFORT,
+        // 原価の記録で、互換APIがトークン数を返さないときは 1 にする（stream_options.include_usage を送る）
+        streamUsage: env.OPENAI_STREAM_USAGE ? env.OPENAI_STREAM_USAGE === "1" : undefined,
       },
     );
   }
@@ -54,9 +57,14 @@ function required(env: Env, key: string): string {
 }
 
 let cached: LLMProvider | undefined;
-export function getProvider(): LLMProvider {
+
+/**
+ * 文章AIを返す。呼び出しはすべて原価の記録（llm_usage）に残る。
+ * sessionId を渡すと、ユーザーごとの原価が分かる。purpose は、呼び出し側で用途を付けていないときの用途
+ */
+export function getProvider(ctx: { sessionId?: string | null; purpose?: Purpose } = {}): LLMProvider {
   cached ??= createProvider();
-  return cached;
+  return meteredProvider(cached, ctx);
 }
 
 /** ストリーミングせずに全文がほしいとき（要約など）。 */

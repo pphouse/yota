@@ -213,6 +213,19 @@ export function checkWords(t: string): CreationProblem[] {
   return problems;
 }
 
+/** 作品づくりの判定に引っかかった言葉（AIに作り直させるとき、どの言葉を直すか伝える） */
+export function problemWords(t: string): string[] {
+  const present = t.replace(PAST_SCHOOL, "");
+  const ageHit = t.match(MINOR_AGE)?.[0]?.trim();
+  return [
+    ...MINOR_WORDS.filter((w) => t.includes(w)),
+    ...SCHOOL_WORDS.filter((w) => present.includes(w)),
+    ...(ageHit ? [ageHit] : []),
+    ...SEXUAL_WORDS.filter((w) => t.includes(w)),
+    ...EXPLICIT_WORDS.filter((w) => t.includes(w)),
+  ].slice(0, 8);
+}
+
 export const PROBLEM_MESSAGE: Record<CreationProblem, string> = {
   minor: "登場人物は全員18歳以上にしてください（高校生以下や未成年を思わせる言葉は使えません）",
   sexual: "性的な内容は書けません",
