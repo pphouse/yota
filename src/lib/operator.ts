@@ -7,4 +7,6 @@ export const OPERATOR = {
   name: process.env.NEXT_PUBLIC_OPERATOR_NAME ?? "【会社名を入れる】",
   address: process.env.NEXT_PUBLIC_OPERATOR_ADDRESS ?? "【所在地を入れる】",
   email: process.env.NEXT_PUBLIC_OPERATOR_EMAIL ?? "【お問い合わせ用メールアドレスを入れる】",
+  /** 運営の X のアカウント（@ なし）。入れると、作者募集のページに「X の DM へ」の案内が出る */
+  x: (process.env.NEXT_PUBLIC_OPERATOR_X ?? "").replace(/^@/, ""),
 };
