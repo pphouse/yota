@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Author, BlogShell, Share } from "@/components/blog/BlogShell";
+import { CtaBar } from "@/components/blog/CtaBar";
 import { dotDate, getArticle, jaDate, listArticles, readingMinutes, renderBody, SITE } from "@/lib/blog";
 import { OPERATOR } from "@/lib/operator";
 
@@ -207,12 +208,13 @@ export default async function ArticlePage({ params }: PageProps<"/blog/[slug]">)
         ) : null}
 
         {/* ボタン */}
-        <aside className="mt-12 overflow-hidden rounded-3xl bg-[#1b1a22] p-6 text-center text-white">
+        <aside id="cta-end" className="mt-12 overflow-hidden rounded-3xl bg-[#1b1a22] p-6 text-center text-white">
           <p className="text-[0.75rem] font-bold text-white/60">AIのキャラと話して進める恋愛ストーリー</p>
           <p className="mt-1 text-[1.3rem] font-black">yota（ヨタ）</p>
           <p className="mt-2 text-[0.85rem] leading-6 text-white/80">{cta.text}</p>
-          <Link href={cta.href} className="mt-5 block rounded-full bg-[image:var(--brand-grad)] py-3.5 text-[1rem] font-black shadow-lg shadow-fuchsia-500/20">
+          <Link href={cta.href} className="cta-btn mt-5 block rounded-full bg-[image:var(--brand-grad)] py-3.5 text-[1rem] font-black shadow-lg shadow-fuchsia-500/20">
             {cta.label}
+            <span className="cta-arrow" aria-hidden>→</span>
           </Link>
         </aside>
 
@@ -261,6 +263,7 @@ export default async function ArticlePage({ params }: PageProps<"/blog/[slug]">)
           </section>
         )}
       </article>
+      <CtaBar href={cta.href} label={cta.label} />
     </BlogShell>
   );
 }

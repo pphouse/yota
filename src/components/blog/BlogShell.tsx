@@ -24,7 +24,7 @@ export function BlogShell({ children, cta }: { children: React.ReactNode; cta?: 
             <Link href="/blog" className="hidden hover:text-brand sm:inline">
               記事一覧
             </Link>
-            <Link href={cta ?? "/?ref=blog-header"} className="rounded-full bg-[image:var(--brand-grad)] px-4 py-2 text-white shadow-sm">
+            <Link href={cta ?? "/?ref=blog-header"} className="cta-btn rounded-full bg-[image:var(--brand-grad)] px-4 py-2 text-white shadow-sm">
               無料で遊ぶ
             </Link>
           </nav>
@@ -32,7 +32,7 @@ export function BlogShell({ children, cta }: { children: React.ReactNode; cta?: 
       </header>
       {children}
       <footer className="mt-20 border-t border-black/5 bg-white">
-        <div className="mx-auto max-w-3xl px-4 py-10 text-[0.8rem] leading-7 text-ink-3">
+        <div className="mx-auto max-w-3xl px-4 pt-10 pb-28 text-[0.8rem] leading-7 text-ink-3">
           <div className="flex items-center gap-2">
             <Image src="/icon-192.png" alt="" width={24} height={24} className="rounded-md" />
             <span className="font-black text-ink">yota 読みもの</span>

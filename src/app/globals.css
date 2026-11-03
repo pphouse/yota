@@ -243,4 +243,31 @@ body {
 .blog-body .app-card-desc { margin: 0.15rem 0 0; font-size: 0.8rem; line-height: 1.5; color: #474c5c; }
 .blog-body .app-card-tags { margin: 0.45rem 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .blog-body .app-card-tags li { margin: 0; padding: 0.05rem 0.5rem; border-radius: 999px; background: #f4ecfa; color: #8a2fc0; font-size: 0.7rem; font-weight: 800; }
-.blog-body .app-card-btn { grid-column: 1 / -1; display: block; border-radius: 999px; background: var(--brand-grad); padding: 0.75rem; text-align: center; font-weight: 900; color: #fff !important; text-decoration: none; }
+.blog-body .app-card-btn { grid-column: 1 / -1; display: block; border-radius: 999px; background: var(--brand-grad); padding: 0.8rem; text-align: center; font-size: 1rem; font-weight: 900; color: #fff !important; text-decoration: none; }
+
+/*
+  「無料で遊ぶ」のボタン。押したくなるよう、3秒に1回だけ光が横切り、矢印が少し前に出る。
+  ずっと点滅させると広告っぽくなるので、動くのは一瞬だけにする。動きを減らす設定の人には動かさない。
+*/
+.cta-btn { position: relative; overflow: hidden; isolation: isolate; transition: transform 0.15s ease, box-shadow 0.2s ease; }
+.cta-btn::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.45) 50%, transparent 65%);
+  transform: translateX(-120%); animation: cta-shine 3.2s ease-in-out 1s infinite;
+}
+.cta-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px -6px rgb(194 84 240 / 0.55); }
+.cta-btn:active { transform: scale(0.97); }
+.cta-arrow { display: inline-block; margin-left: 0.4em; animation: cta-nudge 3.2s ease-in-out 1s infinite; }
+@keyframes cta-shine { 0% { transform: translateX(-120%); } 30%, 100% { transform: translateX(120%); } }
+@keyframes cta-nudge { 0%, 18%, 40%, 100% { transform: translateX(0); } 28% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .cta-btn::after, .cta-arrow { animation: none; }
+  .cta-btn::after { display: none; }
+}
+
+/* 記事を読み進めると、画面の下に出る「無料で遊ぶ」の帯 */
+.cta-bar { transform: translateY(130%); transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.cta-bar[data-show="true"] { transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .cta-bar { transition: none; }
+}
