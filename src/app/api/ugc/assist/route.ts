@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "今日の「AIで考える」の回数の上限に達しました。また明日お試しください" }, { status: 429 });
   }
   await logEvent(session.id, "ugc_assist", { field: parsed.data.field });
-  const options = await assist(getProvider(), parsed.data.field, parsed.data.plot, parsed.data.index).catch((e) => {
+  const options = await assist(getProvider({ sessionId: session.id, purpose: "ugc_assist" }), parsed.data.field, parsed.data.plot, parsed.data.index).catch((e) => {
     console.error("[ugc/assist]", e);
     return null;
   });

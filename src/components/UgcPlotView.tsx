@@ -11,6 +11,7 @@ import { StartButtons } from "@/components/StartButtons";
 import { TextJacket } from "@/components/TextJacket";
 import type { Plot } from "@/lib/characters";
 import { api } from "@/lib/client";
+import { isNativeApp, shareLink } from "@/lib/native";
 
 type Meta = { id: string; author: string; status: "private" | "pending" | "public"; jacketStatus: "none" | "pending" | "ready" | "failed" };
 type Loaded = { plot: Plot; meta: Meta; isOwner: boolean };
@@ -28,6 +29,12 @@ export function UgcPlotView() {
   const [data, setData] = useState<Loaded | null | "missing">(null);
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [blocked, setBlocked] = useState<"idle" | "confirm" | "done">("idle");
+
+  async function blockAuthor() {
+    const r = await api(`/api/blocks`, { method: "POST", body: JSON.stringify({ plotId: id }) });
+    if (r.ok) setBlocked("done");
+  }
 
   const load = useCallback(async () => {
     const r = await api<Loaded>(`/api/plots/${encodeURIComponent(id)}`);
@@ -62,8 +69,8 @@ export function UgcPlotView() {
 
   async function share() {
     const url = window.location.href.split("?")[0];
-    if (navigator.share) {
-      await navigator.share({ title: data && data !== "missing" ? data.plot.title : "yota", url }).catch(() => {});
+    if (isNativeApp() || typeof navigator.share === "function") {
+      await shareLink({ title: data && data !== "missing" ? data.plot.title : "yota", url });
       return;
     }
     await navigator.clipboard.writeText(url).catch(() => {});
@@ -169,6 +176,20 @@ export function UgcPlotView() {
               <FeedbackSheet label="この作品を通報する" defaultCategory="report" context={`作品：${plot.id}`} />
             </p>
           )}
+          {!isOwner &&
+            (blocked === "done" ? (
+              <p className="mt-2">この作者をブロックしました。「みんなの作品」に出なくなります。設定から解除できます。</p>
+            ) : blocked === "confirm" ? (
+              <p className="mt-2">
+                この作者の作品を「みんなの作品」に出さないようにしますか？
+                <button onClick={blockAuthor} className="ml-2 font-bold text-paper underline">ブロックする</button>
+                <button onClick={() => setBlocked("idle")} className="ml-3 underline">やめる</button>
+              </p>
+            ) : (
+              <p className="mt-2">
+                <button onClick={() => setBlocked("confirm")} className="underline">この作者をブロックする</button>
+              </p>
+            ))}
         </div>
       </div>
     </main>

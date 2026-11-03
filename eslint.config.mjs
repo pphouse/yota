@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // iOS / Android のネイティブプロジェクト（Capacitor が生成・コピーするファイル）
+    "android/**",
+    "ios/**",
   ]),
 ]);
 

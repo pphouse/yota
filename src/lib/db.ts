@@ -102,6 +102,48 @@ const SCHEMA = [
     data BLOB NOT NULL,
     created_at INTEGER NOT NULL
   )`,
+  // アプリの通知を送る先（端末ごとのトークン）。token は端末とアプリの組み合わせで1つ
+  `CREATE TABLE IF NOT EXISTS push_tokens (
+    token TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_push_session ON push_tokens(session_id)`,
+  // 作者のブロック。ブロックした人には、その作者の作品を「みんなの作品」に出さない。
+  // 作者のセッションIDは画面に出さず、id（ランダム）で解除する
+  `CREATE TABLE IF NOT EXISTS blocks (
+    id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    author_session_id TEXT NOT NULL,
+    author TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL,
+    UNIQUE (session_id, author_session_id)
+  )`,
+  // 文章AIの呼び出し1回ごとの記録（原価を測るため）。会話の中身は残さない。
+  // トークン数が分からない呼び出し（途中で止めた等）は NULL のまま、文字数だけ残す
+  `CREATE TABLE IF NOT EXISTS llm_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT,
+    purpose TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL DEFAULT '',
+    tier TEXT NOT NULL DEFAULT '',
+    effort TEXT NOT NULL DEFAULT '',
+    input_tokens INTEGER,
+    cached_tokens INTEGER,
+    output_tokens INTEGER,
+    reasoning_tokens INTEGER,
+    reasoning_chars INTEGER NOT NULL DEFAULT 0,
+    output_chars INTEGER NOT NULL DEFAULT 0,
+    cost_usd REAL,
+    ms INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_llm_usage_created ON llm_usage(created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_llm_usage_session ON llm_usage(session_id, created_at)`,
 ];
 
 // あとから足した列。作成済みのDBにも足す（すでにあればエラーになるので無視する）

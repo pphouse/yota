@@ -97,3 +97,8 @@ export const ImageIcon = (p: P) => (
     <path d="M20.5 16l-5-5-8.5 8.5" />
   </Svg>
 );
+export const MenuIcon = (p: P) => (
+  <Svg {...p}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Svg>
+);
