@@ -6,7 +6,7 @@ import { PlotList } from "@/components/PlotList";
 import { Shelf } from "@/components/Shelf";
 import { UgcShelves } from "@/components/UgcShelves";
 import { UserName } from "@/components/UserName";
-import { PLOTS } from "@/lib/characters";
+import { FEATURED, getPlot, PLOTS } from "@/lib/characters";
 import { OPERATOR } from "@/lib/operator";
 import { xConfig } from "@/lib/x";
 import Link from "next/link";
@@ -32,7 +32,7 @@ export default function Home() {
           </div>
         </div>
       </header>
-      <Featured plots={PLOTS.filter((p) => p.featured)} />
+      <Featured plots={FEATURED.map(getPlot).filter((p) => p !== undefined)} />
       {/* X のキーが入っているときだけ、「Xから生まれる彼」の入口を出す */}
       {xConfig() && (
         <Link href="/x" className="press mx-5 mt-5 flex items-center gap-3 rounded-2xl bg-night-2 px-4 py-3.5">

@@ -1,12 +1,17 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { callName, GENRES, getPlot, isNew, NEW_DAYS, PLOTS, STAT_LABELS } from "./characters";
+import { callName, FEATURED, GENRES, getPlot, isNew, NEW_DAYS, PLOTS, STAT_LABELS } from "./characters";
 import { toBeats } from "./story";
 
 const publicFile = (src: string) => path.join(import.meta.dirname, "../../public", src);
 
 describe("公式の作品とキャラクター", () => {
+  it("注目作は、ある作品だけを、重ならずに並べる", () => {
+    expect(new Set(FEATURED).size).toBe(FEATURED.length);
+    for (const id of FEATURED) expect(getPlot(id), id).toBeDefined();
+  });
+
   it("作品のIDが重複していない", () => {
     const ids = PLOTS.map((p) => p.id);
     expect(new Set(ids).size).toBe(ids.length);
