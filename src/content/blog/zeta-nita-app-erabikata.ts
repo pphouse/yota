@@ -78,7 +78,7 @@ zeta で自分のキャラを作りこんだ人は、ここが大事です。
 
 yota は、AIのキャラと会話しながら進める恋愛ストーリーのアプリです。こんな人に合います。
 
-- 雑談より、物語として読み進めたい人（3往復目に山場が来て、そのあとも出来事が起きます）
+- 雑談より、物語として読み進めたい人（会話の中で出来事が起き、物語が進みます）
 - 何を返せばいいか迷いがちな人（返すたびに、場面に合った返事の候補が3つ出ます）
 - 広告や課金を気にせず遊びたい人（いまは広告なし・課金なし・登録なし）
 - 口に出さない本音（長押しで読める「心の声」）など、**行間でときめきたい人**
@@ -128,7 +128,7 @@ yota なら、貼るだけで移せます（[引っ越しの方法](/blog/zeta-h
     { title: "App Store「zeta — AI Chat, Live Stories」（Scatter Lab, Inc.）", url: "https://apps.apple.com/us/app/1619030760" },
     { title: "ピクシブ百科事典「zeta」", url: "https://dic.pixiv.net/a/zeta" },
   ],
-  cta: { label: "yota を試してみる", href: "/?ref=blog-zeta-nita-app", text: "まずは1作品、3往復だけ。登録なしで始められます。" },
+  cta: { label: "yota を試してみる", href: "/?ref=blog-zeta-nita-app", text: "まずは1作品、少しだけ。登録なしで始められます。" },
   related: ["zeta-hikkoshi", "zeta-ryokin", "yume-shosetsu-ai"],
 };
 
