@@ -94,6 +94,16 @@ const SCHEMA = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_x_results_user ON x_results(x_user, created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_x_results_created ON x_results(created_at)`,
+  // ログイン（LINE・Google・Apple）。外部のアカウントの ID はハッシュにして持ち、セッション（匿名のアカウント）に結びつける
+  `CREATE TABLE IF NOT EXISTS identities (
+    provider TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    last_login_at INTEGER NOT NULL,
+    PRIMARY KEY (provider, subject)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_identities_session ON identities(session_id)`,
   // 作品のキャラに登録した画像（正方形の小さい絵。作る画面で切り抜いてから送る）
   `CREATE TABLE IF NOT EXISTS ugc_images (
     id TEXT PRIMARY KEY,

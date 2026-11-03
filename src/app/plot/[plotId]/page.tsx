@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { NewBadge } from "@/components/Badges";
 import { BackIcon } from "@/components/icons";
 import { StartButtons } from "@/components/StartButtons";
+import { XShareButton } from "@/components/XShareButton";
 import { Profile } from "@/components/Profile";
 import { getPlot, PLOTS } from "@/lib/characters";
 
@@ -54,6 +55,12 @@ export default async function PlotPage({ params }: PageProps<"/plot/[plotId]">) 
             <StartButtons plot={plot} />
           </Suspense>
         </div>
+        <XShareButton
+          text={`『${plot.title}』\n${plot.catchphrase}\n#yota`}
+          url={`https://yotachat.app/plot/${plot.id}`}
+          event={{ name: "plot_share", props: { plotId: plot.id } }}
+          className="mt-3 w-full"
+        />
 
         {plot.intro && (
           <section className="mt-10">

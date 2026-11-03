@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AvatarStack } from "@/components/Avatar";
 import { ChevronDownIcon } from "@/components/icons";
+import { LoginSheet } from "@/components/LoginSheet";
 import type { Plot } from "@/lib/characters";
 import { api } from "@/lib/client";
 import { storedRef } from "@/lib/ref";
@@ -20,6 +21,13 @@ export function AgeGate({ plot, nameOnly = false, onDone }: { plot: Plot; nameOn
   const [month, setMonth] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // ログインが使えるときだけ、前にログインした人の入り口を出す
+  const [canLogin, setCanLogin] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  useEffect(() => {
+    if (nameOnly) return;
+    void api<{ providers?: string[] }>("/api/session").then((r) => setCanLogin((r.data.providers ?? []).length > 0));
+  }, [nameOnly]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -131,6 +139,12 @@ export function AgeGate({ plot, nameOnly = false, onDone }: { plot: Plot; nameOn
             18歳未満の方は、恋愛の表現をおだやかにし、1日の利用を3時間までにしています。
           </p>
         )}
+        {canLogin && (
+          <button type="button" onClick={() => setLoginOpen(true)} className="press mx-auto mt-5 block text-sm font-bold text-paper underline underline-offset-4">
+            以前ログインした方はこちら
+          </button>
+        )}
+        {loginOpen && <LoginSheet reason="returning" onClose={() => setLoginOpen(false)} />}
       </div>
     </form>
   );

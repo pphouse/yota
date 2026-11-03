@@ -6,6 +6,7 @@ import { LOGO_MOON, LOGO_TBAR, LOGO_VIEWBOX, LOGO_WORD } from "@/components/Logo
 import { track } from "@/lib/client";
 import { mangaPanels, pickQuote, type MangaPanels } from "@/lib/story";
 import { isNativeApp, shareImageNative } from "@/lib/native";
+import { XShareButton } from "@/components/XShareButton";
 
 const W = 1080;
 const H = 1350;
@@ -434,7 +435,7 @@ export function SceneCard({
         />
         <div className={`mt-4 grid gap-3 ${native ? "grid-cols-1" : "grid-cols-2"}`}>
           <button onClick={share} className="press btn-brand rounded-full py-3.5 text-sm">
-            共有する
+            {native ? "画像で共有する" : "共有する"}
           </button>
           <a
             hidden={native}
@@ -446,6 +447,14 @@ export function SceneCard({
             画像を保存
           </a>
         </div>
+        {/* X の投稿画面を直接開く（画像は付かないので、画像も載せたいときは「共有する」から） */}
+        <XShareButton
+          text={tweet}
+          url={link}
+          label="Xでポスト"
+          event={{ name: "card_share", props: { plotId: plot.id } }}
+          className="mt-3 w-full rounded-full py-3.5"
+        />
         <button onClick={onClose} className="press mt-2 w-full py-2.5 text-sm font-bold text-mist">
           閉じる
         </button>

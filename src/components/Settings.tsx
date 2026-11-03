@@ -4,11 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
+import { LoginButtons } from "@/components/LoginSheet";
 import { BackIcon } from "@/components/icons";
 import { api } from "@/lib/client";
 import { enablePush, pushAvailable, pushPermission } from "@/lib/native";
 
 type Block = { id: string; author: string; createdAt: number };
+type Provider = "line" | "google" | "apple";
+type Me = { providers: Provider[]; account: { providers: Provider[] } | null; guest: { sent: number; limit: number } | null; hasSession: boolean };
+const PROVIDER_NAME: Record<Provider, string> = { line: "LINE", google: "Google", apple: "Apple" };
 type Push = "granted" | "denied" | "prompt" | "unsupported" | null;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -24,7 +28,7 @@ const noop = () => () => {};
 
 const row = "flex min-h-14 w-full items-center justify-between gap-3 px-4 py-3 text-left text-[0.92rem]";
 
-/** 設定：通知・ブロックした作者・ご意見・規約・退会 */
+/** 設定：アカウント・通知・ブロックした作者・ご意見・規約・退会 */
 export function Settings() {
   const router = useRouter();
   // アプリの中で、通知が使えるか（サーバーで描くときは false。変わらないので購読はしない）
@@ -34,8 +38,13 @@ export function Settings() {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
+    void api<{ session: unknown; providers?: Provider[]; account?: Me["account"]; guest?: Me["guest"] }>("/api/session").then((r) =>
+      setMe({ providers: r.data.providers ?? [], account: r.data.account ?? null, guest: r.data.guest ?? null, hasSession: Boolean(r.data.session) }),
+    );
     void pushPermission().then(setPush);
     void api<{ items: Block[] }>("/api/blocks").then((r) => setBlocks(r.ok ? r.data.items : []));
   }, []);
@@ -48,6 +57,20 @@ export function Settings() {
   async function unblock(id: string) {
     await api(`/api/blocks?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     setBlocks((b) => (b ?? []).filter((x) => x.id !== id));
+  }
+
+  /** ログアウト。記録はアカウントに残る（もう一度ログインすれば戻る）。この端末に残した下書きは消す */
+  async function logout() {
+    setLoggingOut(true);
+    await api("/api/auth/logout", { method: "POST" });
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {
+      // 保存領域が使えない環境では何もしない
+    }
+    router.replace("/");
+    router.refresh();
   }
 
   async function deleteAll() {
@@ -76,6 +99,34 @@ export function Settings() {
           <h1 className="text-[0.95rem] font-bold">設定</h1>
         </div>
       </header>
+
+      {me && me.providers.length > 0 && (
+        <Section title="アカウント">
+          {me.account ? (
+            <div className={row}>
+              <div>
+                <p className="font-bold">{me.account.providers.map((p) => PROVIDER_NAME[p]).join("・")} でログイン中</p>
+                <p className="mt-0.5 text-[0.78rem] leading-5 text-mist">会話と作品は、このアカウントに保存されています。</p>
+              </div>
+              <button onClick={logout} disabled={loggingOut} className="press shrink-0 rounded-full bg-night-3 px-4 py-2 text-[0.8rem] font-bold">
+                {loggingOut ? "…" : "ログアウト"}
+              </button>
+            </div>
+          ) : (
+            <div className="px-4 py-4">
+              <p className="font-bold">ログインして、会話と作品を保存する</p>
+              <p className="mt-1 text-[0.78rem] leading-5 text-mist">
+                {me.guest
+                  ? `ゲストのあいだは${me.guest.limit}回まで話せます（いま${Math.min(me.guest.sent, me.guest.limit)}回）。ログインすると、話し放題になり、機種変更しても続きから遊べます。`
+                  : "ログインすると、機種変更やブラウザを変えても、続きから遊べます。"}
+              </p>
+              <div className="mt-4">
+                <LoginButtons providers={me.providers} returnTo="/settings" />
+              </div>
+            </div>
+          )}
+        </Section>
+      )}
 
       {canPush && (
         <Section title="通知">
@@ -138,7 +189,7 @@ export function Settings() {
           <div className="px-4 py-4 text-[0.88rem] leading-7">
             <p className="font-bold">本当に削除しますか？</p>
             <p className="mt-1 text-mist">
-              会話の履歴、作った作品と画像、Xの診断結果、ご意見、通知の登録がすべて消えます。元に戻せません。
+              会話の履歴、作った作品と画像、Xの診断結果、ご意見、通知の登録、ログインのつながりがすべて消えます。元に戻せません。
             </p>
             {deleteError && <p className="mt-2 text-red-300">{deleteError}</p>}
             <div className="mt-4 grid grid-cols-2 gap-3">

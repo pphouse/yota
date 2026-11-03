@@ -19,6 +19,7 @@ import { Typewriter } from "@/lib/typewriter";
 import { plotPath } from "@/lib/ugc-schema";
 import { fillUser, nameInProse } from "@/lib/username";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
+import { LoginSheet } from "@/components/LoginSheet";
 
 type UIMessage = {
   key: string;
@@ -29,7 +30,10 @@ type UIMessage = {
   streaming?: boolean;
 };
 
-type Notice = { kind: "care" | "late_night" | "blocked" | "error" | "limit"; message: string; link?: string };
+type Notice = { kind: "care" | "late_night" | "guest" | "login" | "blocked" | "error" | "limit"; message: string; link?: string };
+
+/** ログインの画面へ移るあいだ、書きかけの一言を預けておく場所 */
+const draftKey = (conversationId: string) => `yota_draft:${conversationId}`;
 
 type Stored = { id: string; role: "user" | "assistant"; content: string; flagged: boolean };
 
@@ -85,6 +89,7 @@ export function ChatScreen() {
   const [turn, setTurn] = useState<"idle" | "receiving" | "revealing">("idle");
   const busy = turn !== "idle";
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
   const [input, setInput] = useState("");
   const [editing, setEditing] = useState<{ key: string; text: string } | null>(null);
   const [card, setCard] = useState<string | null>(null);
@@ -125,6 +130,14 @@ export function ChatScreen() {
     setConversationId(r.id);
     setUserName(r.name);
     setMessages(r.messages.map(fromStored));
+    // ログインから戻ってきたら、書きかけの一言を入力欄に戻す
+    try {
+      const draft = sessionStorage.getItem(draftKey(r.id));
+      if (draft) {
+        sessionStorage.removeItem(draftKey(r.id));
+        setInput(draft);
+      }
+    } catch {}
     setPhase("ready");
   }, []);
 
@@ -218,8 +231,17 @@ export function ChatScreen() {
         typer.cancel();
         drop([placeholder.key, ...(optimisticUser ? [optimisticUser.key] : [])]);
         if (res.status === 401) return setPhase("gate");
-        setNotice({ kind: data.code === "daily_limit" ? "limit" : "error", message: data.error ?? "送信できませんでした" });
         if (body.message) setInput(body.message);
+        if (data.code === "login_required") {
+          // ゲストの上限。書きかけの一言を預けて、ログインをすすめる
+          try {
+            if (body.message && conversationId) sessionStorage.setItem(draftKey(conversationId), body.message);
+          } catch {}
+          setNotice({ kind: "login", message: data.error ?? "続きはログインして話せます。" });
+          setLoginOpen(true);
+          return;
+        }
+        setNotice({ kind: data.code === "daily_limit" ? "limit" : "error", message: data.error ?? "送信できませんでした" });
         return;
       }
       for await (const e of readEvents(res)) {
@@ -562,9 +584,22 @@ export function ChatScreen() {
                     相談できる窓口を見る
                   </a>
                 )}
+                {(notice.kind === "guest" || notice.kind === "login") && (
+                  <button onClick={() => setLoginOpen(true)} className="press ml-1 font-bold underline">
+                    ログインする
+                  </button>
+                )}
               </div>
             )}
-            {chips.length > 0 && (
+            {notice?.kind === "login" && (
+              <div className="px-4">
+                <button onClick={() => setLoginOpen(true)} className="press btn-brand w-full rounded-2xl py-3.5 text-[0.95rem]">
+                  ログインして続きを話す
+                </button>
+              </div>
+            )}
+            {loginOpen && <LoginSheet reason={notice?.kind === "login" ? "limit" : "save"} onClose={() => setLoginOpen(false)} />}
+            {chips.length > 0 && notice?.kind !== "login" && (
               <div className="rail arrive mb-2.5 flex gap-2 overflow-x-auto px-4">
                 {chips.map((s, i) => (
                   <button
@@ -578,7 +613,7 @@ export function ChatScreen() {
                 ))}
               </div>
             )}
-            {notice?.kind !== "limit" && (
+            {notice?.kind !== "limit" && notice?.kind !== "login" && (
               <form
                 onSubmit={(e) => {
                   e.preventDefault();

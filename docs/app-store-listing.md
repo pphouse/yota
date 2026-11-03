@@ -40,8 +40,8 @@ yota は、会話で読み進める恋愛ストーリーのアプリです。
 ■ 作品をつくる
 一行のアイデアから、AIが題名・キャラ・最初の一言まで下書きします。白紙から自分で書くことも、ほかのアプリで作った自分の作品を引っ越すこともできます。作った作品はリンクで友だちに遊んでもらえます。
 
-■ 登録なし・広告なし・無料
-年齢の確認と、物語の中で呼ばれる名前を決めるだけで始められます。メールアドレスや電話番号は集めません。
+■ 登録なしで始められる・広告なし・無料
+年齢の確認と、物語の中で呼ばれる名前を決めるだけで始められます。続けて話すときは、LINE か Apple でログインするだけ（無料）。ゲストのときの会話も、そのまま引き継げます。メールアドレスや電話番号は集めません。
 
 ■ 安心して遊べるように
 ・登場人物は、すべて18歳以上の架空の人物です。
@@ -83,13 +83,14 @@ AIチャット,キャラチャット,恋愛,乙女ゲーム,BL,夢小説,ノベ�
 | 連絡先情報 › その他のユーザの連絡先情報 | ご意見に任意で書いた連絡先 | App の機能 | はい |
 | 使用状況データ › 製品の操作 | どの作品を開いたか、押したボタン、利用時間 | アナリティクス、App の機能（18歳未満の利用時間の上限） | はい |
 | その他のデータ › その他のデータの種類 | 生まれた年と月、物語の中の名前 | App の機能（年齢による制限） | はい |
+| ID › ユーザ ID | ログインに使った LINE・Apple のアカウントID（元に戻せない形にしたもの） | App の機能 | はい |
 
 - 「ユーザに関連付け」は、端末ごとのランダムな ID（cookie）で会話や設定をまとめているため「はい」にしておく（名前・メール・電話番号などの身元は集めない）。
 - 「Xから生まれる彼」を有効にしたら、「ID › ユーザ ID」（X のユーザー名、任意）を足す。
 
 ## App Review への情報
 
-- サインイン：不要（デモ用のアカウントはない）
+- サインイン：ゲストで15回まで話せる。その先は LINE か Apple でのログインが必要（審査の人は「Apple でサインイン」で試せる。デモ用のアカウントはない）
 - 連絡先：運営者の名前・電話番号・メールを入れる
 
 ### 審査メモ（英語）
@@ -97,7 +98,9 @@ AIチャット,キャラチャット,恋愛,乙女ゲーム,BL,夢小説,ノベ�
 ```
 yota is a Japanese interactive romance story app. Users talk with fictional AI characters and the story progresses through conversation.
 
-No account is required. On first launch, the app asks for the user's birth year/month (age check) and a display name used inside the story. No email or phone number is collected.
+No account is required to start. On first launch, the app asks for the user's birth year/month (age check) and a display name used inside the story. No email or phone number is collected.
+
+Guests can send up to 15 messages. After that, the app asks the user to log in to keep talking (their guest conversations carry over). Login options are Sign in with Apple and LINE Login (Guideline 4.8: Sign in with Apple is offered alongside LINE). Only an account identifier is used (stored hashed); we do not request name or email. You can test login with Sign in with Apple, from the chat screen when the limit is reached or from Settings > "アカウント".
 
 How to test:
 1. Open any story on the home screen (e.g. the first one in the carousel) and tap "物語をはじめる" (Start).
@@ -111,7 +114,7 @@ Safety and moderation (Guideline 1.2):
 - AI replies: the latest reply has "報告" (Report) to flag AI-generated content.
 - Users under 18 get stricter content limits and a daily time limit.
 
-Account deletion (5.1.1(v)): Settings > "データをすべて削除して退会する" deletes all data.
+Account deletion (5.1.1(v)): Settings > "データをすべて削除して退会する" deletes all data, including the login link. Settings > "ログアウト" logs out.
 
 Native features (4.2): native share sheet for cards, in-app browser for external links, Android back button, splash screen, and an offline screen. The app content is served from our own website (yotachat.app), which we operate.
 
