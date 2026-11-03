@@ -50,6 +50,9 @@ export default function Home() {
       <PlotList plots={PLOTS} />
       <footer className="mt-16 border-t border-white/5 px-5 pt-6 text-xs leading-6 text-mist/80">
         <nav aria-label="yota について" className="flex flex-wrap gap-x-5 gap-y-2 text-[0.78rem] font-bold text-mist">
+          <Link href="/blog" className="hover:text-paper">
+            読みもの
+          </Link>
           <Link href="/support" className="hover:text-paper">
             サポート
           </Link>

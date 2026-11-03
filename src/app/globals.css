@@ -26,6 +26,10 @@
   --color-mist: var(--mist);
   --color-amber: var(--amber);
   --color-brand: var(--brand);
+  /* 読みもの（/blog）の白い画面の文字色 */
+  --color-ink: #1d2030;
+  --color-ink-2: #474c5c;
+  --color-ink-3: #7b8090;
   --font-sans: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
   /* 明朝はやめて、すべてゴシックにする */
   --font-mincho: var(--font-sans);
@@ -178,3 +182,92 @@ body {
 .cutin-bar-bottom { animation: cutin-bar-bottom 2.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 .cutin-title { animation: cutin-title 2.6s ease-out both; }
 .cutin-flash { animation: cutin-flash 2.6s ease-out both; }
+
+/* 読みもの（/blog）。アプリと違い、長い文章を読みやすいよう白い地にする */
+.blog-page { background: #f7f6f9; color: #1d2030; font-feature-settings: normal; }
+.blog-body { font-size: 1.02rem; line-height: 2; color: #2b2f3d; letter-spacing: 0.02em; }
+.blog-body > :first-child { margin-top: 0; }
+.blog-body p { margin-top: 1.4rem; }
+.blog-body h2 {
+  position: relative; margin-top: 4rem; display: flex; align-items: baseline; gap: 0.7rem;
+  border-radius: 0.9rem; background: #fff; padding: 1rem 1.1rem 1rem 1.25rem;
+  font-size: 1.28rem; font-weight: 900; line-height: 1.55; color: #1d2030;
+  box-shadow: inset 4px 0 0 var(--brand), 0 1px 2px rgb(0 0 0 / 0.04); scroll-margin-top: 4.5rem;
+}
+.blog-body .h2-num { flex-shrink: 0; font-size: 0.85rem; font-weight: 900; color: var(--brand); letter-spacing: 0.05em; }
+.blog-body h3 {
+  margin-top: 2.6rem; border-bottom: 2px solid #ecdff5; padding-bottom: 0.45rem;
+  font-size: 1.1rem; font-weight: 800; line-height: 1.6; color: #1d2030; scroll-margin-top: 4.5rem;
+}
+.blog-body strong { font-weight: 800; color: #1d2030; background: linear-gradient(transparent 60%, #ffe3f0 60%); }
+.blog-body a { color: #9b30cf; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.blog-body a:hover { color: #ff4f9a; }
+.blog-body ul, .blog-body ol { margin-top: 1.2rem; padding-left: 1.4rem; }
+.blog-body ul { list-style: disc; }
+.blog-body ol { list-style: decimal; }
+.blog-body li { margin-top: 0.5rem; padding-left: 0.2rem; }
+.blog-body li::marker { color: var(--brand); font-weight: 800; }
+.blog-body code { font-size: 0.85em; background: #f0ebf5; border-radius: 0.35rem; padding: 0.1rem 0.4rem; color: #6b2a92; }
+.blog-body pre { margin-top: 1.4rem; overflow-x: auto; white-space: pre-wrap; border-radius: 1rem; background: #23212b; color: #f3f1f7; padding: 1.1rem 1.2rem; font-size: 0.85rem; line-height: 1.85; }
+.blog-body pre code { background: none; padding: 0; color: inherit; }
+.blog-body hr { margin: 3rem 0; border: 0; border-top: 1px dashed #d8d3df; }
+/* 表 */
+.blog-body .table-wrap { margin-top: 1.5rem; overflow-x: auto; border-radius: 0.9rem; background: #fff; box-shadow: 0 0 0 1px #e6e2ec; }
+.blog-body table { width: 100%; border-collapse: collapse; font-size: 0.88rem; line-height: 1.7; }
+.blog-body th { background: #f4ecfa; text-align: left; font-weight: 800; color: #1d2030; white-space: nowrap; }
+.blog-body th, .blog-body td { padding: 0.7rem 0.9rem; border-bottom: 1px solid #eeeaf2; vertical-align: top; }
+.blog-body td { min-width: 6.5em; }
+.blog-body td:first-child { font-weight: 700; color: #1d2030; }
+.blog-body tr:last-child td { border-bottom: 0; }
+.blog-body tbody tr:nth-child(even) td { background: #fbfafc; }
+/* 囲み枠 */
+.blog-body .box { margin-top: 1.8rem; border-radius: 1rem; padding: 1.1rem 1.2rem 1.2rem; font-size: 0.95rem; line-height: 1.9; }
+.blog-body .box > p:not(.box-title) { margin-top: 0.5rem; }
+.blog-body .box ul, .blog-body .box ol { margin-top: 0.4rem; }
+.blog-body .box-title { margin: 0; display: flex; align-items: center; gap: 0.4rem; font-weight: 900; font-size: 0.92rem; }
+.blog-body .box-title::before { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 999px; color: #fff; font-size: 0.75rem; }
+.blog-body .box-point { background: #fff4f9; box-shadow: inset 0 0 0 1px #ffd0e4; }
+.blog-body .box-point .box-title { color: #d6336c; }
+.blog-body .box-point .box-title::before { content: "✓"; background: #ff4f9a; }
+.blog-body .box-note { background: #f1f6ff; box-shadow: inset 0 0 0 1px #d3e2ff; }
+.blog-body .box-note .box-title { color: #2f5fd0; }
+.blog-body .box-note .box-title::before { content: "i"; background: #4a7cf0; font-family: serif; font-style: italic; }
+.blog-body .box-warn { background: #fff8ea; box-shadow: inset 0 0 0 1px #ffe2a8; }
+.blog-body .box-warn .box-title { color: #b36b00; }
+.blog-body .box-warn .box-title::before { content: "!"; background: #f0a020; }
+/* yota の紹介カード */
+.blog-body .app-card { margin-top: 2rem; display: grid; grid-template-columns: auto 1fr; gap: 0.9rem; align-items: center; border-radius: 1.1rem; background: #fff; padding: 1.1rem; box-shadow: 0 0 0 1px #ece4f3, 0 6px 20px -8px rgb(194 84 240 / 0.25); }
+.blog-body .app-card-icon { border-radius: 0.9rem; }
+.blog-body .app-card-main { min-width: 0; }
+.blog-body .app-card-name { margin: 0; font-weight: 900; font-size: 1rem; color: #1d2030; }
+.blog-body .app-card-desc { margin: 0.15rem 0 0; font-size: 0.8rem; line-height: 1.5; color: #474c5c; }
+.blog-body .app-card-tags { margin: 0.45rem 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.blog-body .app-card-tags li { margin: 0; padding: 0.05rem 0.5rem; border-radius: 999px; background: #f4ecfa; color: #8a2fc0; font-size: 0.7rem; font-weight: 800; }
+.blog-body .app-card-btn { grid-column: 1 / -1; display: block; border-radius: 999px; background: var(--brand-grad); padding: 0.8rem; text-align: center; font-size: 1rem; font-weight: 900; color: #fff !important; text-decoration: none; }
+
+/*
+  「無料で遊ぶ」のボタン。押したくなるよう、3秒に1回だけ光が横切り、矢印が少し前に出る。
+  ずっと点滅させると広告っぽくなるので、動くのは一瞬だけにする。動きを減らす設定の人には動かさない。
+*/
+.cta-btn { position: relative; overflow: hidden; isolation: isolate; transition: transform 0.15s ease, box-shadow 0.2s ease; }
+.cta-btn::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.45) 50%, transparent 65%);
+  transform: translateX(-120%); animation: cta-shine 3.2s ease-in-out 1s infinite;
+}
+.cta-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px -6px rgb(194 84 240 / 0.55); }
+.cta-btn:active { transform: scale(0.97); }
+.cta-arrow { display: inline-block; margin-left: 0.4em; animation: cta-nudge 3.2s ease-in-out 1s infinite; }
+@keyframes cta-shine { 0% { transform: translateX(-120%); } 30%, 100% { transform: translateX(120%); } }
+@keyframes cta-nudge { 0%, 18%, 40%, 100% { transform: translateX(0); } 28% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) {
+  .cta-btn::after, .cta-arrow { animation: none; }
+  .cta-btn::after { display: none; }
+}
+
+/* 記事を読み進めると、画面の下に出る「無料で遊ぶ」の帯 */
+.cta-bar { transform: translateY(130%); transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.cta-bar[data-show="true"] { transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .cta-bar { transition: none; }
+}
