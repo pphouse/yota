@@ -75,12 +75,39 @@ NEXT_PUBLIC_OPERATOR_EMAIL=support@yotachat.app
 
 ## 3. iOS（Mac が必要）
 
-1. `npm install` → `npx cap sync ios` → `npx cap open ios`（Xcode が開く）
-2. Signing & Capabilities で、自分の Team を選ぶ（いまは個人の Team。会社に切り替えても同じ Team のまま）。Bundle Identifier は `app.yotachat`。
-3. Capabilities を足す：**Push Notifications**、**Associated Domains**（`applinks:yotachat.app`）。
-4. Vercel の環境変数に `APPLE_TEAM_ID`（10文字）を入れる。`/.well-known/apple-app-site-association` が自動で返る。
-5. Product → Archive → App Store Connect にアップロード → TestFlight で自分の端末で試す。
-6. App Store Connect で、スクリーンショット（6.9インチ・6.5インチ）、説明文、プライバシーの項目（「6. データの申告」）、年齢区分を入れて審査に出す。
+### はじめの1回
+
+- Mac に、App Store から最新の **Xcode** を入れて一度開く（追加の部品を入れるか聞かれたら入れる）。Node.js は 22 などの LTS。
+- Xcode → Settings → Accounts で、開発者登録した Apple ID を足す（Team に「大塚直人（Individual）」が出る）。
+- ネイティブの部品は Swift Package Manager で入る（CocoaPods は使わない）。
+
+### ビルドして TestFlight に上げる
+
+1. ```bash
+   git clone https://github.com/pphouse/yota.git && cd yota   # 2回目からは git pull
+   npm ci
+   npx cap sync ios
+   npx cap open ios   # Xcode が開く
+   ```
+2. 左の一覧で「App」→ TARGETS の「App」→ **Signing & Capabilities**：
+   - 「Automatically manage signing」にチェック、Team は自分の Team（個人。会社に切り替えても同じ Team のまま）、Bundle Identifier は `app.yotachat`。
+   - 「＋ Capability」で **Push Notifications** と **Associated Domains** を足し、Associated Domains に `applinks:yotachat.app` を入れる。
+3. **General** で Version を `1.0`、Build を `1` にする（上げ直すたびに Build を 2、3…と増やす）。
+4. 上の実行先を「**Any iOS Device (arm64)**」にして、**Product → Archive**。終わると Organizer が開く。
+5. **Distribute App → App Store Connect → Upload**（そのまま次へ）。10〜30分ほどで App Store Connect の TestFlight に出る。
+6. App Store Connect の **TestFlight → 内部テスト** に自分を足し、iPhone に「TestFlight」アプリを入れて試す。
+7. Vercel の環境変数に `APPLE_TEAM_ID`（10文字）を入れて再デプロイする。`/.well-known/apple-app-site-association` が返り、yotachat.app のリンクがアプリで開くようになる。
+
+### 審査に出す
+
+App Store Connect の「配信」のページで、次を入れて「審査用に追加」→「審査に提出」。
+
+- スクリーンショット（6.9インチ）：`docs/screenshots/` の6枚
+- 名前・サブタイトル・説明・キーワード・プロモーションテキスト・サポート URL：`docs/app-store-listing.md`
+- ビルド：TestFlight に上げたもの
+- App Review に関する情報：サインインは不要、審査メモは `docs/app-store-listing.md` の英文、連絡先
+- 「App のプライバシー」：`docs/app-store-listing.md` の答え方
+- 年齢区分・価格（無料）・配信する国（日本だけ）
 
 ## 4. Android
 
