@@ -104,6 +104,20 @@ const SCHEMA = [
     PRIMARY KEY (provider, subject)
   )`,
   `CREATE INDEX IF NOT EXISTS idx_identities_session ON identities(session_id)`,
+  // メールでのログインのコード。メールアドレスとコードはハッシュで持ち、1日たったら消す
+  `CREATE TABLE IF NOT EXISTS email_codes (
+    id TEXT PRIMARY KEY,
+    email_hash TEXT NOT NULL,
+    code_hash TEXT NOT NULL,
+    ip TEXT NOT NULL,
+    tries INTEGER NOT NULL DEFAULT 0,
+    used INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_email_codes_email ON email_codes(email_hash, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_email_codes_ip ON email_codes(ip, created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_email_codes_created ON email_codes(created_at)`,
   // 作品のキャラに登録した画像（正方形の小さい絵。作る画面で切り抜いてから送る）
   `CREATE TABLE IF NOT EXISTS ugc_images (
     id TEXT PRIMARY KEY,

@@ -8,7 +8,7 @@ import { maybeSummarize } from "@/lib/memory";
 import { getSession } from "@/lib/session";
 import { getConversation, logEvent } from "@/lib/store";
 import { recordActivity } from "@/lib/usage";
-import { authEnabled, guestLimit, isLoggedIn, sentMessages } from "@/lib/auth";
+import { guestLimit, guestLimited, isLoggedIn, sentMessages } from "@/lib/auth";
 
 const RATE_LIMIT_PER_MIN = Number(process.env.RATE_LIMIT_PER_MIN ?? 20);
 
@@ -40,9 +40,9 @@ export async function POST(req: Request) {
     return Response.json({ error: "少し間をあけてから送ってください。", code: "rate_limit" }, { status: 429 });
   }
 
-  // ゲスト（ログインしていない人）は、送れる回数に上限がある。ログインすると、それまでの会話を引き継いで続けられる
+  // Web のゲスト（ログインしていない人）は、送れる回数に上限がある。ログインすると、それまでの会話を引き継いで続けられる。アプリの人はかけない
   let guestLeft: number | null = null;
-  if (authEnabled() && !parsed.data.regenerate && !(await isLoggedIn(session.id))) {
+  if (guestLimited(req) && !parsed.data.regenerate && !(await isLoggedIn(session.id))) {
     guestLeft = guestLimit() - (await sentMessages(session.id));
     if (guestLeft <= 0) {
       return Response.json(

@@ -1,5 +1,5 @@
 /**
- * ログイン（LINE・Google・Apple）。サーバー専用。
+ * ログイン（LINE・Google・Apple・メールアドレス）。サーバー専用。
  *
  * yota は登録なしで始められる（匿名のセッション）。ログインは、そのセッションに外部のアカウントを結びつけるだけ：
  * - はじめてのアカウントなら、いまのセッションに結びつける（ゲストのときの会話・作品はそのまま）。
@@ -8,9 +8,11 @@
  */
 import { query, run } from "./db";
 
-export type Provider = "line" | "google" | "apple";
-export const PROVIDERS: Provider[] = ["line", "google", "apple"];
-export const PROVIDER_LABEL: Record<Provider, string> = { line: "LINE", google: "Google", apple: "Apple" };
+export type Provider = "line" | "google" | "apple" | "email";
+/** ほかのサービスの画面へ移ってログインするもの（メールアドレスは、コードを送る別の流れ：email-login.ts） */
+export type OAuthProvider = Exclude<Provider, "email">;
+export const OAUTH_PROVIDERS: OAuthProvider[] = ["line", "google", "apple"];
+export const PROVIDER_LABEL: Record<Provider, string> = { line: "LINE", google: "Google", apple: "Apple", email: "メールアドレス" };
 
 type Env = Record<string, string | undefined>;
 
@@ -19,7 +21,7 @@ export type ProviderConfig =
   | { provider: "google"; clientId: string; clientSecret: string }
   | { provider: "apple"; clientId: string; teamId: string; keyId: string; privateKey: string };
 
-export function providerConfig(p: Provider, env: Env = process.env): ProviderConfig | null {
+export function providerConfig(p: OAuthProvider, env: Env = process.env): ProviderConfig | null {
   if (p === "line" && env.LINE_CHANNEL_ID && env.LINE_CHANNEL_SECRET) return { provider: p, clientId: env.LINE_CHANNEL_ID, clientSecret: env.LINE_CHANNEL_SECRET };
   if (p === "google" && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) return { provider: p, clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET };
   if (p === "apple" && env.APPLE_SIGNIN_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_SIGNIN_KEY_ID && env.APPLE_SIGNIN_PRIVATE_KEY) {
@@ -28,13 +30,28 @@ export function providerConfig(p: Provider, env: Env = process.env): ProviderCon
   return null;
 }
 
+/** メールでログインできるか（送るためのキーがあるか。EMAIL_MOCK は本番以外で、送らずに試すためのもの） */
+export const emailEnabled = (env: Env = process.env) => Boolean(env.RESEND_API_KEY) || (env.EMAIL_MOCK === "1" && env.VERCEL_ENV !== "production");
+
 /** キーが入っているログインの手段 */
-export const enabledProviders = (env: Env = process.env) => PROVIDERS.filter((p) => providerConfig(p, env));
+export const enabledProviders = (env: Env = process.env): Provider[] => [
+  ...OAUTH_PROVIDERS.filter((p) => providerConfig(p, env)),
+  ...(emailEnabled(env) ? (["email"] as const) : []),
+];
 /** ログインが使えるか（使えないあいだは、ゲストの上限もかけない） */
 export const authEnabled = (env: Env = process.env) => enabledProviders(env).length > 0;
 
 /** ゲスト（ログインしていない人）が送れるメッセージの数。3往復目の山場を、いくつかの作品で体験できるくらい */
 export const guestLimit = (env: Env = process.env) => Number(env.GUEST_MESSAGE_LIMIT ?? 15);
+
+/** iOS・Android のアプリからのアクセスか（アプリは User-Agent の末尾に YotaApp を付ける：capacitor.config.ts） */
+export const fromApp = (req: Request) => /\bYotaApp\b/.test(req.headers.get("user-agent") ?? "");
+
+/**
+ * ゲストの上限をかけるか。アプリを入れた人はゲストとして扱わない（入れること自体が、続けて使うという意思なので）。
+ * Web では、ログインの手段が1つでも使えるときだけかける
+ */
+export const guestLimited = (req: Request, env: Env = process.env) => authEnabled(env) && !fromApp(req);
 
 /** ログインのあとに戻る場所（同じサイトの中だけ） */
 export function safeReturn(raw: string | null | undefined): string {

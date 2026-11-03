@@ -175,25 +175,29 @@ src/
 - **ジャケット**：保存すると、画像生成AIでタイトル文字入りのジャケットを作る（`src/lib/jacket.ts`、返事を返したあとに作り、DB に webp で保存）。Vercel の環境変数に `IMAGE_API_KEY`（OpenAI 互換の Images API のキー）を入れると有効になる。`IMAGE_MODEL`（既定 gpt-image-1）・`IMAGE_BASE_URL`・`IMAGE_QUALITY` で変えられる。キーがないとき・作れなかったときは、推し色とタイトルだけの文字ジャケットを出す。
 - ユーザーの作品の ID は `u-` で始まり、紹介ページは `/u/<id>`、会話は `/chat/<id>`（こちらの作品と同じ画面）。
 
-## ログイン（LINE・Google・Apple）とゲストの上限
+## ログイン（Google・メールアドレス・LINE・Apple）とゲストの上限
 
-登録なしで始められる（年齢の確認と名前だけの、匿名のセッション）。ゲストで送れるメッセージは `GUEST_MESSAGE_LIMIT` 回（既定 15）までで、使い切ると会話の画面でログインをすすめる。ログインした人は上限なし。仕組みは `src/lib/auth.ts`。
+登録なしで始められる（年齢の確認と名前だけの、匿名のセッション）。仕組みは `src/lib/auth.ts`・`src/lib/email-login.ts`。
 
+- **Web のゲストだけに上限**：Web のゲストが送れるメッセージは `GUEST_MESSAGE_LIMIT` 回（既定 15）までで、使い切ると会話の画面でログインをすすめる。ログインした人は上限なし。
+- **アプリは上限なし**：アプリを入れた人はゲストとして扱わない（User-Agent の `YotaApp` で見分ける）。アプリで出すログインは、機種変更の引き継ぎ用のメールアドレスだけ（任意）。ほかのサービスのログインを出さないので、Apple の審査 4.8（Sign in with Apple も必須）はかからない。
+- **メールアドレスのログイン**：6けたのコードをメールで送り、画面に入れてもらう（リンク式だと、アプリから始めても端末のブラウザでログインしてしまうため）。コードは10分・5回まで。同じアドレスへは1分あけて1時間に5通、同じ接続元から1時間に10通、全体で1日 `EMAIL_DAILY_LIMIT` 通（既定 500）まで。アドレスとコードはハッシュでしか持たない。
 - **ゲストの記録は引き継ぐ**：はじめてログインしたアカウントは、いまのセッションにそのまま結びつく。前にログインしたことのあるアカウント（機種変更など）なら、そのアカウントに切りかえ、ゲストのあいだの会話・作品をそちらへ移す。
-- **持つのは ID のハッシュだけ**：メール・名前・プロフィール画像は求めず、保存もしない（`identities` テーブルに、サービス名と、`AUTH_HASH_SALT` を混ぜた ID のハッシュ）。
+- **持つのは ID のハッシュだけ**：名前・プロフィール画像は求めず、メールアドレスもそのままの形では保存しない（`identities` テーブルに、方法の名前と、`AUTH_HASH_SALT` を混ぜた ID のハッシュ）。
 - **年齢の確認が先**：はじめての人がセッションなしでログインしようとしたら、先に年齢の確認をしてもらう。前にログインした人は、年齢の確認の画面の「以前ログインした方はこちら」から戻れる。
-- **アプリの中**：Google はアプリの中の画面でのログインを受け付けないので、iOS・Android のアプリでは Google のボタンを出さない。LINE を出すなら Apple も出す（Apple の審査 4.8）。
 - **キーが1つも入っていないあいだ**は、ログインのボタンも、ゲストの上限も出ない（今までどおり無制限）。
-- 戻り先（Callback / Redirect URI）は、どれも `https://yotachat.app/api/auth/<line|google|apple>/callback`。
+- 戻り先（Callback / Redirect URI）は、どれも `https://yotachat.app/api/auth/<google|line|apple>/callback`。
+- **キーなしで試す**：ローカルで `EMAIL_MOCK=1` を付けて起動すると、メールを送らずにコードをサーバーのログに出す（本番の環境では効かない）。
 
 設定のしかた（入れたものから使えるようになる。入れたら Vercel で再デプロイ）：
 
 | サービス | どこで作るか | Vercel の環境変数 |
 | --- | --- | --- |
-| LINE | [LINE Developers](https://developers.line.biz/console/) でプロバイダー（yota制作委員会）を作り、「LINEログイン」のチャネル（アプリのタイプは「ウェブアプリ」）を作る。「LINEログイン設定」のコールバック URL に `https://yotachat.app/api/auth/line/callback`。メールアドレスの取得の申請は不要。最後にチャネルを「公開」にする（開発中のままだと、チャネルの管理者しかログインできない） | `LINE_CHANNEL_ID`・`LINE_CHANNEL_SECRET`（チャネル基本設定） |
+| 共通（済み） | ランダムな文字列。**あとから変えると、全員のログインがつながらなくなる** | `AUTH_HASH_SALT`（任意で `GUEST_MESSAGE_LIMIT`） |
 | Google | [Google Cloud](https://console.cloud.google.com/) の「Google Auth Platform」でアプリ名・サポートのメール・承認済みドメイン `yotachat.app`・プライバシーポリシーと規約の URL を入れ、対象を「外部」にして本番に公開する（使うのは `openid` だけなので審査は不要）。「クライアント」で「ウェブ アプリケーション」を作り、承認済みのリダイレクト URI に `https://yotachat.app/api/auth/google/callback` | `GOOGLE_CLIENT_ID`・`GOOGLE_CLIENT_SECRET` |
-| Apple | [Apple Developer](https://developer.apple.com/account/resources/identifiers/list) で、① App ID `app.yotachat` の「Sign in with Apple」をオン ② Services ID を作り（例：`app.yotachat.signin`）、「Sign in with Apple」の Configure で Primary App ID を `app.yotachat`、Domains を `yotachat.app`、Return URLs を `https://yotachat.app/api/auth/apple/callback` にする ③ Keys で「Sign in with Apple」の鍵を作り、`.p8` をダウンロード（1回しかできない） | `APPLE_SIGNIN_CLIENT_ID`（Services ID）・`APPLE_TEAM_ID`・`APPLE_SIGNIN_KEY_ID`・`APPLE_SIGNIN_PRIVATE_KEY`（`.p8` の中身を、BEGIN と END の行ごと） |
-| 共通 | ランダムな文字列を1つ決める。**あとから変えると、全員のログインがつながらなくなる**ので、最初に1回だけ | `AUTH_HASH_SALT`（任意で `GUEST_MESSAGE_LIMIT`） |
+| メールアドレス | [Resend](https://resend.com) で `yotachat.app` のドメインを足し、出てくる DNS のレコード（DKIM の TXT、`send` の MX と TXT）を Vercel の DNS に入れて確認を通す（yotachat.app の DNS は Vercel にあるので `vercel dns add` でも入れられる）。API キーを「Sending access」で作る | `RESEND_API_KEY`（任意で `EMAIL_FROM`：既定 `yota <login@yotachat.app>`、`EMAIL_DAILY_LIMIT`） |
+| LINE（任意） | [LINE Developers](https://developers.line.biz/console/) でプロバイダー（yota制作委員会）を作り、「LINEログイン」のチャネル（アプリのタイプは「ウェブアプリ」）を作る。コールバック URL に `https://yotachat.app/api/auth/line/callback`。メールアドレスの取得の申請は不要。最後にチャネルを「公開」にする | `LINE_CHANNEL_ID`・`LINE_CHANNEL_SECRET` |
+| Apple（任意） | [Apple Developer](https://developer.apple.com/account/resources/identifiers/list) で、① App ID `app.yotachat` の「Sign in with Apple」をオン ② Services ID を作り（例：`app.yotachat.signin`）、Domains を `yotachat.app`、Return URLs を `https://yotachat.app/api/auth/apple/callback` にする ③ Keys で「Sign in with Apple」の鍵を作り、`.p8` をダウンロード | `APPLE_SIGNIN_CLIENT_ID`・`APPLE_TEAM_ID`・`APPLE_SIGNIN_KEY_ID`・`APPLE_SIGNIN_PRIVATE_KEY` |
 
 ## Xから生まれる彼（`/x`）
 
@@ -233,6 +237,5 @@ Xでログインすると、本人のプロフィールと最近の投稿100件�
 
 ## まだやっていないこと
 
-- アプリの中の LINE ログインを、LINE のアプリに切りかえる形にする（今はアプリの中の画面で、メールとパスワードか QR コードでログインする）
 - 判定モデルによる二次判定（`safety.ts` の `JudgeHook` に差し込む口だけある）
 - 有料化、漫画化

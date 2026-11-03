@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { authorizeUrl, pkce, PROVIDERS, providerConfig, randomToken, safeReturn, type Provider } from "@/lib/auth";
+import { authorizeUrl, pkce, OAUTH_PROVIDERS, providerConfig, randomToken, safeReturn, type OAuthProvider } from "@/lib/auth";
 
 const AUTH_COOKIE = "yota_auth";
 
@@ -8,7 +8,7 @@ export async function GET(req: Request, ctx: RouteContext<"/api/auth/[provider]/
   const { provider } = await ctx.params;
   const url = new URL(req.url);
   const ret = safeReturn(url.searchParams.get("return"));
-  const cfg = PROVIDERS.includes(provider as Provider) ? providerConfig(provider as Provider) : null;
+  const cfg = OAUTH_PROVIDERS.includes(provider as OAuthProvider) ? providerConfig(provider as OAuthProvider) : null;
   if (!cfg) return Response.redirect(new URL(`${ret}${ret.includes("?") ? "&" : "?"}login_error=unavailable`, req.url), 303);
   const state = randomToken();
   const nonce = randomToken();

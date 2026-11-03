@@ -4,9 +4,10 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { AvatarStack } from "@/components/Avatar";
 import { ChevronDownIcon } from "@/components/icons";
-import { LoginSheet } from "@/components/LoginSheet";
+import { LoginSheet, visibleProviders, type Provider } from "@/components/LoginSheet";
 import type { Plot } from "@/lib/characters";
 import { api } from "@/lib/client";
+import { isNativeApp } from "@/lib/native";
 import { storedRef } from "@/lib/ref";
 import { USER_NAME_MAX } from "@/lib/username";
 
@@ -26,7 +27,7 @@ export function AgeGate({ plot, nameOnly = false, onDone }: { plot: Plot; nameOn
   const [loginOpen, setLoginOpen] = useState(false);
   useEffect(() => {
     if (nameOnly) return;
-    void api<{ providers?: string[] }>("/api/session").then((r) => setCanLogin((r.data.providers ?? []).length > 0));
+    void api<{ providers?: Provider[] }>("/api/session").then((r) => setCanLogin(visibleProviders(r.data.providers ?? [], isNativeApp()).length > 0));
   }, [nameOnly]);
 
   async function submit(e: React.FormEvent) {

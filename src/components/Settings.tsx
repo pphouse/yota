@@ -4,15 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { FeedbackSheet } from "@/components/FeedbackSheet";
-import { LoginButtons } from "@/components/LoginSheet";
+import { LoginButtons, visibleProviders, type Provider } from "@/components/LoginSheet";
 import { BackIcon } from "@/components/icons";
 import { api } from "@/lib/client";
-import { enablePush, pushAvailable, pushPermission } from "@/lib/native";
+import { enablePush, isNativeApp, pushAvailable, pushPermission } from "@/lib/native";
 
 type Block = { id: string; author: string; createdAt: number };
-type Provider = "line" | "google" | "apple";
 type Me = { providers: Provider[]; account: { providers: Provider[] } | null; guest: { sent: number; limit: number } | null; hasSession: boolean };
-const PROVIDER_NAME: Record<Provider, string> = { line: "LINE", google: "Google", apple: "Apple" };
+const PROVIDER_NAME: Record<Provider, string> = { line: "LINE", google: "Google", apple: "Apple", email: "メールアドレス" };
 type Push = "granted" | "denied" | "prompt" | "unsupported" | null;
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -39,11 +38,18 @@ export function Settings() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [me, setMe] = useState<Me | null>(null);
+  // アプリでは、ログインは機種変更の引き継ぎのためだけ（ゲストの上限はない）
+  const [native] = useState(() => isNativeApp());
   const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     void api<{ session: unknown; providers?: Provider[]; account?: Me["account"]; guest?: Me["guest"] }>("/api/session").then((r) =>
-      setMe({ providers: r.data.providers ?? [], account: r.data.account ?? null, guest: r.data.guest ?? null, hasSession: Boolean(r.data.session) }),
+      setMe({
+        providers: visibleProviders(r.data.providers ?? [], isNativeApp()),
+        account: r.data.account ?? null,
+        guest: r.data.guest ?? null,
+        hasSession: Boolean(r.data.session),
+      }),
     );
     void pushPermission().then(setPush);
     void api<{ items: Block[] }>("/api/blocks").then((r) => setBlocks(r.ok ? r.data.items : []));
@@ -114,11 +120,13 @@ export function Settings() {
             </div>
           ) : (
             <div className="px-4 py-4">
-              <p className="font-bold">ログインして、会話と作品を保存する</p>
+              <p className="font-bold">{native ? "機種変更に備えて、引き継ぎをする" : "ログインして、会話と作品を保存する"}</p>
               <p className="mt-1 text-[0.78rem] leading-5 text-mist">
                 {me.guest
                   ? `ゲストのあいだは${me.guest.limit}回まで話せます（いま${Math.min(me.guest.sent, me.guest.limit)}回）。ログインすると、話し放題になり、機種変更しても続きから遊べます。`
-                  : "ログインすると、機種変更やブラウザを変えても、続きから遊べます。"}
+                  : native
+                    ? "メールアドレスでログインしておくと、機種変更やアプリを入れ直したときも、続きから遊べます（任意）。"
+                    : "ログインしておくと、機種変更やブラウザを変えても、続きから遊べます。"}
               </p>
               <div className="mt-4">
                 <LoginButtons providers={me.providers} returnTo="/settings" />

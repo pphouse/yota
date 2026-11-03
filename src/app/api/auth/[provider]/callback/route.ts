@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { completeLogin, exchangeCode, PROVIDERS, providerConfig, safeReturn, type Provider } from "@/lib/auth";
+import { completeLogin, exchangeCode, OAUTH_PROVIDERS, providerConfig, safeReturn, type OAuthProvider } from "@/lib/auth";
 import { getSession, setSessionCookie } from "@/lib/session";
 import { logEvent } from "@/lib/store";
 
@@ -12,7 +12,7 @@ export async function GET(req: Request, ctx: RouteContext<"/api/auth/[provider]/
   const jar = await cookies();
   const saved = (() => {
     try {
-      return JSON.parse(jar.get(AUTH_COOKIE)?.value ?? "null") as { p: Provider; state: string; nonce: string; verifier: string; ret: string; redirectUri: string } | null;
+      return JSON.parse(jar.get(AUTH_COOKIE)?.value ?? "null") as { p: OAuthProvider; state: string; nonce: string; verifier: string; ret: string; redirectUri: string } | null;
     } catch {
       return null;
     }
@@ -24,7 +24,7 @@ export async function GET(req: Request, ctx: RouteContext<"/api/auth/[provider]/
   if (url.searchParams.get("error")) return back("login_error=cancel");
   const code = url.searchParams.get("code");
   if (!saved || saved.p !== provider || !code || url.searchParams.get("state") !== saved.state) return back("login_error=state");
-  const cfg = PROVIDERS.includes(provider as Provider) ? providerConfig(provider as Provider) : null;
+  const cfg = OAUTH_PROVIDERS.includes(provider as OAuthProvider) ? providerConfig(provider as OAuthProvider) : null;
   if (!cfg) return back("login_error=unavailable");
 
   try {

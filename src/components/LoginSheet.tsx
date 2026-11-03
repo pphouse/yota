@@ -5,11 +5,20 @@ import { createPortal } from "react-dom";
 import { api } from "@/lib/client";
 import { isNativeApp } from "@/lib/native";
 
-type Provider = "line" | "google" | "apple";
+export type Provider = "line" | "google" | "apple" | "email";
+type OAuthProvider = Exclude<Provider, "email">;
 
-const LABEL: Record<Provider, string> = { line: "LINE でログイン", google: "Google でログイン", apple: "Apple でサインイン" };
+const LABEL: Record<OAuthProvider, string> = { line: "LINE でログイン", google: "Google でログイン", apple: "Apple でサインイン" };
 
-function Mark({ p }: { p: Provider }) {
+/**
+ * この画面で出すログインの手段。アプリの中ではメールアドレスだけにする
+ * （Google はアプリの中の画面でのログインを受け付けない。アプリはゲストの上限がないので、ほかのサービスでのログインはいらない）
+ */
+export function visibleProviders(providers: Provider[], native: boolean): Provider[] {
+  return native ? providers.filter((p) => p === "email") : providers;
+}
+
+function Mark({ p }: { p: OAuthProvider }) {
   if (p === "line")
     return (
       <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden fill="currentColor">
@@ -32,20 +41,138 @@ function Mark({ p }: { p: Provider }) {
   );
 }
 
-const STYLE: Record<Provider, string> = {
+const STYLE: Record<OAuthProvider, string> = {
   line: "bg-[#06C755] text-white",
   google: "bg-white text-[#1f1f1f]",
   apple: "bg-white text-black",
 };
 
-/** ログインのボタンの並び。アプリの中では Google を出さない（Google はアプリの中の画面でのログインを受け付けないため） */
-export function LoginButtons({ providers, returnTo }: { providers: Provider[]; returnTo: string }) {
+/** ログインのあとに戻る URL（知らせを出すための印を付ける） */
+const withLoginOk = (returnTo: string) => `${returnTo}${returnTo.includes("?") ? "&" : "?"}login=ok`;
+
+function MailIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <path d="m4 7 8 6 8-6" />
+    </svg>
+  );
+}
+
+const field =
+  "h-12 w-full rounded-xl bg-night-3 px-4 text-base text-paper placeholder:text-mist/60 focus:outline-none focus:ring-2 focus:ring-brand/70";
+
+/** メールアドレスでのログイン：アドレスを入れる → 届いた6けたのコードを入れる */
+function EmailLogin({ returnTo, open: openAtFirst }: { returnTo: string; open: boolean }) {
+  const [step, setStep] = useState<"closed" | "email" | "code">(openAtFirst ? "email" : "closed");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function send(e?: React.FormEvent) {
+    e?.preventDefault();
+    setBusy(true);
+    setError(null);
+    const r = await api<{ ok?: boolean; error?: string }>("/api/auth/email/start", { method: "POST", body: JSON.stringify({ email }) });
+    setBusy(false);
+    if (!r.ok) return setError(r.data.error ?? "送れませんでした。もう一度お試しください。");
+    setCode("");
+    setStep("code");
+  }
+
+  async function verify(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const r = await api<{ ok?: boolean; error?: string }>("/api/auth/email/verify", { method: "POST", body: JSON.stringify({ email, code }) });
+    if (!r.ok) {
+      setBusy(false);
+      return setError(r.data.error ?? "ログインできませんでした。もう一度お試しください。");
+    }
+    // ログインしたアカウントで、ページを読み込み直す
+    window.location.href = withLoginOk(returnTo);
+  }
+
+  if (step === "closed") {
+    return (
+      <button onClick={() => setStep("email")} className="press flex h-12 w-full items-center justify-center gap-2.5 rounded-xl bg-night-3 text-[0.92rem] font-bold text-paper">
+        <MailIcon />
+        メールアドレスでログイン
+      </button>
+    );
+  }
+  return (
+    <div className="rounded-2xl bg-night-3/60 p-3.5">
+      {step === "email" ? (
+        <form onSubmit={send} className="space-y-2.5">
+          <label className="block text-xs font-bold text-mist">
+            メールアドレス
+            <input
+              type="email"
+              required
+              autoFocus
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              inputMode="email"
+              placeholder="you@example.com"
+              className={`${field} mt-1.5`}
+            />
+          </label>
+          <button type="submit" disabled={busy || !email.trim()} className="press btn-brand h-12 w-full rounded-xl text-[0.92rem]">
+            {busy ? "送っています…" : "コードを送る"}
+          </button>
+          <p className="text-[0.72rem] leading-5 text-mist/80">6けたのコードをメールで送ります。パスワードはいりません。</p>
+        </form>
+      ) : (
+        <form onSubmit={verify} className="space-y-2.5">
+          <p className="break-all text-[0.8rem] leading-6 text-mist">
+            <span className="font-bold text-paper">{email}</span> に6けたのコードを送りました（10分のあいだ使えます）。
+          </p>
+          <input
+            required
+            autoFocus
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/[^0-9０-９]/g, "").slice(0, 6))}
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            aria-label="6けたのコード"
+            placeholder="123456"
+            className={`${field} text-center text-xl font-bold tracking-[0.4em]`}
+          />
+          <button type="submit" disabled={busy || code.length !== 6} className="press btn-brand h-12 w-full rounded-xl text-[0.92rem]">
+            {busy ? "確かめています…" : "ログインする"}
+          </button>
+          <div className="flex justify-between text-[0.75rem] font-bold text-mist">
+            <button type="button" onClick={() => setStep("email")} className="press underline underline-offset-4">
+              アドレスを変える
+            </button>
+            <button type="button" onClick={() => send()} disabled={busy} className="press underline underline-offset-4">
+              コードを送り直す
+            </button>
+          </div>
+          <p className="text-[0.72rem] leading-5 text-mist/80">届かないときは、迷惑メールのフォルダも見てください。</p>
+        </form>
+      )}
+      {error && (
+        <p role="alert" className="mt-2.5 text-[0.8rem] leading-5 text-amber">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** ログインのボタンの並び。アプリの中ではメールアドレスだけ（visibleProviders） */
+export function LoginButtons({ providers, returnTo, autoOpen = false }: { providers: Provider[]; returnTo: string; autoOpen?: boolean }) {
   const [native] = useState(() => isNativeApp());
-  const shown = providers.filter((p) => !(native && p === "google"));
+  const shown = visibleProviders(providers, native);
   if (shown.length === 0) return <p className="text-sm text-mist">ログインはまだ準備中です。</p>;
+  const oauth = shown.filter((p): p is OAuthProvider => p !== "email");
   return (
     <div className="space-y-2.5">
-      {shown.map((p) => (
+      {oauth.map((p) => (
         // ログインの画面へは、ページごと移る
         <a
           key={p}
@@ -56,6 +183,8 @@ export function LoginButtons({ providers, returnTo }: { providers: Provider[]; r
           {LABEL[p]}
         </a>
       ))}
+      {/* ログインのシートで、メールだけのときは、はじめから入力欄を開いておく（設定の画面では開かない：キーボードが急に出ないように） */}
+      {shown.includes("email") && <EmailLogin returnTo={returnTo} open={autoOpen && oauth.length === 0} />}
     </div>
   );
 }
@@ -85,9 +214,9 @@ export function LoginSheet({ reason, onClose, returnTo }: { reason: keyof typeof
       >
         <p className="text-[1.05rem] font-black">{t.title}</p>
         <p className="mt-2 text-[0.85rem] leading-6 text-mist">{t.body}</p>
-        <div className="mt-5">{providers ? <LoginButtons providers={providers} returnTo={back} /> : <div className="h-12 rounded-xl bg-night-3" />}</div>
+        <div className="mt-5">{providers ? <LoginButtons providers={providers} returnTo={back} autoOpen /> : <div className="h-12 rounded-xl bg-night-3" />}</div>
         <p className="mt-4 text-[0.7rem] leading-5 text-mist/80">
-          使うのは、アカウントを見分けるための情報だけです。名前やメールアドレスは保存せず、投稿もしません。ログアウト・退会はいつでもできます。
+          使うのは、アカウントを見分けるための情報だけです。メールアドレスはコードを送るためだけに使い、名前やメールアドレスをそのままの形で保存することはありません。投稿もしません。ログアウト・退会はいつでもできます。
         </p>
         <button onClick={onClose} className="press mt-3 w-full py-2.5 text-sm font-bold text-mist">
           {reason === "limit" ? "あとで" : "閉じる"}
