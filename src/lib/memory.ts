@@ -1,6 +1,7 @@
 import { generateText, type LLMProvider } from "./llm";
 import { buildSummaryPrompt, toApiMessages } from "./prompt";
 import { listMessages, setSummary, type Conversation } from "./store";
+import { plainStory } from "./story";
 
 /** プロンプトにそのまま載せる直近のメッセージ数 */
 export const RECENT_WINDOW = 12;
@@ -17,7 +18,8 @@ export async function maybeSummarize(conv: Conversation, provider: LLMProvider):
   const toFold = pending.slice(0, pending.length - RECENT_WINDOW);
   const summary = await generateText(provider, {
     system: buildSummaryPrompt(conv.summary),
-    messages: toApiMessages(toFold.map((m) => ({ role: m.role, content: m.content }))),
+    // 言いかけてやめた言葉は消し、心の声は（本音：…）として残す
+    messages: toApiMessages(toFold.map((m) => ({ role: m.role, content: m.role === "assistant" ? plainStory(m.content, { inner: "keep" }) : m.content }))),
     tier: "fast",
     maxTokens: 500,
     purpose: "summary",

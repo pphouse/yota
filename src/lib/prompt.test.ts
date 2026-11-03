@@ -20,12 +20,14 @@ describe("buildSystemPrompt", () => {
     expect(p).toContain("つぶやきやツッコミは登場人物に聞こえていません");
   });
 
-  it("山場は1往復目には起こさず、2往復目で兆しを入れ、3往復目で必ず起こす。その後も候補を残す", () => {
+  it("山場は1往復目には起こさず、2往復目で兆しを入れ、3往復目で必ず起こす。そのあとも4往復ごとに起こし、候補を残す", () => {
     const at = (userTurns: number) => buildSystemPrompt({ plot: solo, viewpoint: "self", isMinor: false, summary: "", userTurns });
     expect(at(1)).not.toContain(solo.hooks[0]);
     expect(at(1)).toContain("大きな出来事は起こさず");
     expect(at(2)).toContain("兆し");
     expect(at(3)).toContain("必ず起こし");
+    expect(at(6)).toContain("兆し");
+    expect(at(7)).toContain("必ず起こし");
     for (const n of [2, 3, 8]) expect(at(n)).toContain(solo.hooks[0]);
     expect(at(8)).toContain("3〜4往復に1回");
   });

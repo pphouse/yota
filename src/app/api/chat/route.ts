@@ -15,6 +15,8 @@ const Body = z.object({
   conversationId: z.string(),
   message: z.string().max(2000).optional(),
   regenerate: z.boolean().optional(),
+  // 端末の時刻（時間に触れた返事のため。なくても動く）
+  clock: z.object({ hour: z.number().int().min(0).max(23), minute: z.number().int().min(0).max(59), weekday: z.number().int().min(0).max(6) }).optional(),
 });
 
 export async function POST(req: Request) {
@@ -86,6 +88,7 @@ export async function POST(req: Request) {
           provider,
           message: parsed.data.message,
           regenerate: parsed.data.regenerate,
+          clock: parsed.data.clock,
           signal: req.signal,
         })) {
           if (e.t === "done") done = e;

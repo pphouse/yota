@@ -10,6 +10,8 @@ import { SceneCard } from "@/components/SceneCard";
 import { AvatarStack } from "@/components/Avatar";
 import { BackIcon, CardIcon, PenIcon, RestartIcon, RetryIcon, SendIcon } from "@/components/icons";
 import { AssistantMessage, SceneNarration, UserMessage } from "@/components/StoryMessage";
+import { nowClock, timeTint, type Clock } from "@/lib/clock";
+import { titleOf } from "@/lib/story";
 import { callName, getPlot, VIEWPOINT_LABEL, type Plot, type Viewpoint } from "@/lib/characters";
 import { api, readEvents, track } from "@/lib/client";
 import { RATING_AFTER_TURNS } from "@/lib/feedback";
@@ -96,6 +98,22 @@ export function ChatScreen() {
   const composingRef = useRef(false);
   const compositionEndRef = useRef(0);
   const stickRef = useRef(true);
+  // 山場のカットイン（見出しの行が届いたときに一度だけ）
+  const [cutIn, setCutIn] = useState<{ key: string; title: string } | null>(null);
+  const cutShown = useRef<Set<string>>(new Set());
+  // 端末の時刻（画面の色に使う。サーバーで描いた画面と食い違わないよう、表示してから読む）
+  const [clock, setClock] = useState<Clock | null>(null);
+  useEffect(() => {
+    const tick = () => setClock(nowClock());
+    tick();
+    const t = setInterval(tick, 5 * 60_000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    if (!cutIn) return;
+    const t = setTimeout(() => setCutIn(null), 2700);
+    return () => clearTimeout(t);
+  }, [cutIn]);
 
   const applyLoaded = useCallback((r: Loaded) => {
     if (r.kind === "gate" || r.kind === "name") return setPhase(r.kind);
@@ -172,7 +190,15 @@ export function ChatScreen() {
       setMessages((prev) => prev.map((m) => (m.key === placeholder.key ? fn(m) : m)));
     const drop = (keys: string[]) => setMessages((prev) => prev.filter((m) => !keys.includes(m.key)));
     // 文章AIは長文でも一瞬で返してくるので、届いた分を貯めて、人が書くくらいの速さで見せる
-    const typer = new Typewriter((text) => update((m) => ({ ...m, content: text })));
+    const typer = new Typewriter((text) => {
+      update((m) => ({ ...m, content: text }));
+      // 山場の見出しの行が出そろったら、一度だけカットインを出す（動きを減らす設定の人には出さない）
+      if (cutShown.current.has(placeholder.key)) return;
+      const title = titleOf(text, false);
+      if (!title) return;
+      cutShown.current.add(placeholder.key);
+      if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) setCutIn({ key: placeholder.key, title });
+    });
     typerRef.current = typer;
     let saved = false;
 
@@ -182,7 +208,8 @@ export function ChatScreen() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ conversationId, ...body }),
+        // 端末の時刻も送る（深夜なら、キャラが時間に触れられるように）
+        body: JSON.stringify({ conversationId, ...body, clock: nowClock() }),
         signal: controller.signal,
       });
       if (!res.ok) {
@@ -343,6 +370,9 @@ export function ChatScreen() {
 
   const last = messages[messages.length - 1];
   const watch = viewpoint === "watch";
+  // 距離：話した回数で 0→1（はじめのうちほど大きく寄り、10往復で6割ほど）
+  const closeness = 1 - Math.exp(-messages.filter((m) => m.role === "user").length / 10);
+  const tint = clock ? timeTint(clock.hour) : null;
   const opening = messages.length === 1;
   // 返事の候補：最初の一言には作品ごとの候補、そのあとはキャラが返すたびに作った候補
   const chips =
@@ -359,13 +389,25 @@ export function ChatScreen() {
   return (
     <div className="relative isolate flex min-h-dvh flex-col">
       {/* 作品の背景。暗くして、上下はさらに地の色へ溶かす。年齢確認のあいだは表紙の絵だけを見せる */}
+      {/* 会話が進むほど（距離が縮まるほど）絵が少しずつ寄り、推し色の光がにじむ。端末の時刻で色が変わる（深夜は青く暗く、夕方は橙） */}
       {phase !== "gate" && phase !== "name" && (
-        <div aria-hidden className="fixed inset-0 -z-10">
-          {plot.backdrop && <Image src={plot.backdrop} alt="" fill sizes="100vw" loading="eager" className="object-cover" />}
-          <div className="absolute inset-0 bg-night/70" />
+        <div aria-hidden className="fixed inset-0 -z-10 overflow-hidden">
+          <div
+            className="absolute inset-0 transition-transform duration-[1800ms] ease-out"
+            style={{ transform: `scale(${1 + 0.14 * closeness + (cutIn ? 0.07 : 0)})`, transformOrigin: "50% 32%" }}
+          >
+            {plot.backdrop && <Image src={plot.backdrop} alt="" fill sizes="100vw" loading="eager" className="object-cover" />}
+          </div>
+          <div className="absolute inset-0 bg-night/70 transition-opacity duration-[1800ms]" style={{ opacity: 1 - 0.2 * closeness }} />
+          <div
+            className="absolute inset-0 transition-opacity duration-[1800ms]"
+            style={{ opacity: 0.4 * closeness, background: `radial-gradient(ellipse at 50% 28%, ${plot.personas[0]?.color ?? "#ff8fb1"}66, transparent 62%)` }}
+          />
+          {tint && <div className="absolute inset-0" style={{ background: tint }} />}
           <div className="absolute inset-0 bg-linear-to-b from-night via-transparent to-night" />
         </div>
       )}
+      {cutIn && <CutIn key={cutIn.key} title={cutIn.title} />}
       <header className="sticky top-0 z-10 bg-night/75 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-xl items-center gap-3 px-3 py-2.5">
           <Link href="/" aria-label="物語の一覧へ" className="press grid size-9 place-items-center rounded-full text-mist hover:text-paper">
@@ -578,6 +620,20 @@ export function ChatScreen() {
       )}
 
       {card && <SceneCard plot={plot} viewpoint={viewpoint} text={card} onClose={() => setCard(null)} />}
+    </div>
+  );
+}
+
+/** 山場のカットイン。上下に黒い帯が入り、見出しが浮かんで消える（押しても下の会話は止めない） */
+function CutIn({ title }: { title: string }) {
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
+      <div className="cutin-flash absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(255,255,255,0.5),transparent_60%)]" />
+      <div className="cutin-bar-top absolute inset-x-0 top-0 h-[14vh] bg-black" />
+      <div className="cutin-bar-bottom absolute inset-x-0 bottom-0 h-[14vh] bg-black" />
+      <div className="absolute inset-0 grid place-items-center px-8">
+        <p className="cutin-title text-center text-[1.45rem] font-black leading-snug text-white [text-shadow:0_2px_24px_rgba(0,0,0,0.85)]">{title}</p>
+      </div>
     </div>
   );
 }

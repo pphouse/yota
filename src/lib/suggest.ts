@@ -3,6 +3,7 @@ import { hasForeignText } from "./japanese";
 import { generateText, type LLMProvider } from "./llm";
 import { checkText, mentionsSexual, needsCare } from "./safety";
 import type { StoredMessage } from "./store";
+import { plainStory } from "./story";
 import { fillPlot } from "./username";
 
 /** 見守りで候補が作れなかったときに出す、続きをそのまま見る選択肢 */
@@ -84,7 +85,8 @@ export function buildSuggestRequest(
   const you = viewpoint === "self" ? "あなた" : "読者の希望";
   const scene = messages
     .slice(-CONTEXT_MESSAGES)
-    .map((m) => (m.role === "user" ? `【${you}】${m.content}` : speaker ? `【${speaker}】${m.content}` : m.content))
+    // 心の声と、言いかけてやめた言葉は、読者には聞こえていないので候補の材料にしない
+    .map((m) => (m.role === "user" ? `【${you}】${m.content}` : speaker ? `【${speaker}】${plainStory(m.content)}` : plainStory(m.content)))
     .join("\n\n");
   return [
     `【直近の場面】\n${scene}`,

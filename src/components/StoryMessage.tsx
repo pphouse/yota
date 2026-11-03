@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { NarrationIcon } from "@/components/icons";
 import { callName, type Persona } from "@/lib/characters";
@@ -48,8 +51,84 @@ export function SceneNarration({ text }: { text: string }) {
   );
 }
 
+/** 言いかけてやめた言葉（~~…~~）は、打ち消し線を引いて薄くする。閉じていない ~~ は、まだ言いかけている途中としてそのまま見せる */
+function InlineText({ text }: { text: string }) {
+  const parts: { text: string; struck: boolean }[] = [];
+  let struckCount = 0;
+  const re = /~~([^~]*)(~~|$)/g;
+  let last = 0;
+  for (const m of text.matchAll(re)) {
+    if (m.index! > last) parts.push({ text: text.slice(last, m.index), struck: false });
+    // 1つの吹き出しで線を引くのは1か所まで（多すぎると読みにくい）。閉じていなければ、まだ線を引かない
+    const struck = m[2] !== "" && struckCount === 0;
+    if (struck) struckCount++;
+    if (m[1]) parts.push({ text: m[1], struck });
+    last = m.index! + m[0].length;
+  }
+  if (last < text.length) parts.push({ text: text.slice(last), struck: false });
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.struck ? (
+          <s key={i} className="strike-out" aria-label={`言いかけてやめた言葉：${p.text}`}>
+            {p.text}
+          </s>
+        ) : (
+          <span key={i}>{p.text}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+/** 心の声。ぼかして見せ、押すとしばらく読める */
+function InnerVoice({ text, open, color }: { text: string; open?: boolean; color?: string }) {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (!shown) return;
+    const t = setTimeout(() => setShown(false), 6000);
+    return () => clearTimeout(t);
+  }, [shown]);
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!open) setShown(true);
+      }}
+      aria-label={shown ? `心の声：${text}` : "心の声（押すと読めます）"}
+      aria-live="polite"
+      className="press -mx-1 flex w-[calc(100%+0.5rem)] items-start gap-2 rounded-xl border border-dashed px-2.5 py-1.5 text-left"
+      style={{ borderColor: `${color ?? "#c3a6ff"}66`, background: `${color ?? "#c3a6ff"}10` }}
+    >
+      <span className="mt-[0.2rem] shrink-0 rounded-full px-1.5 py-px text-[0.6rem] font-black text-night" style={{ background: color ?? "#c3a6ff" }}>
+        心の声
+      </span>
+      <span
+        aria-hidden={!shown}
+        className={`inner-voice break-phrase text-[0.88rem] leading-[1.75] text-paper/90 transition-[filter,opacity] duration-500 ${shown ? "" : "select-none opacity-80 blur-[5px]"}`}
+      >
+        {text || "……"}
+      </span>
+      {!shown && !open && <span className="ml-auto mt-[0.2rem] shrink-0 text-[0.62rem] font-bold text-mist">押して読む</span>}
+    </button>
+  );
+}
+
+/** 山場の見出し。物語の区切りとして見せる（カットインの演出のあとに残る） */
+export function ChapterTitle({ text }: { text: string }) {
+  return (
+    <div className="flex items-center gap-3 py-1" role="heading" aria-level={2}>
+      <span className="h-px flex-1 bg-linear-to-r from-transparent to-paper/30" />
+      <span className="text-[0.82rem] font-black tracking-[0.2em] text-paper/90">{text}</span>
+      <span className="h-px flex-1 bg-linear-to-l from-transparent to-paper/30" />
+    </div>
+  );
+}
+
 function BlockView({ block, personas, watch }: { block: Block; personas: Persona[]; watch?: boolean }) {
   if (block.kind === "scene") return <SceneNarration text={block.text} />;
+  if (block.kind === "title") return <ChapterTitle text={block.text} />;
   if (block.kind === "note") {
     return (
       <p className="py-1 text-center">
@@ -74,11 +153,13 @@ function BlockView({ block, personas, watch }: { block: Block; personas: Persona
           {block.items.map((item, i) =>
             item.kind === "narration" ? (
               <p key={i} className="break-phrase whitespace-pre-wrap text-[0.88rem] italic leading-[1.8] text-mist">
-                {item.text}
+                <InlineText text={item.text} />
               </p>
+            ) : item.kind === "inner" ? (
+              <InnerVoice key={i} text={item.text} open={item.open} color={persona?.color} />
             ) : (
               <p key={i} className="whitespace-pre-wrap text-[0.97rem] leading-[1.75] text-paper">
-                {item.text}
+                <InlineText text={item.text} />
                 {item.open && <span className="ml-0.5 inline-block h-[1em] w-[2px] translate-y-[2px] animate-pulse bg-paper/70" />}
               </p>
             ),

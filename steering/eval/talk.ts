@@ -94,7 +94,11 @@ function render(text: string, names: string[], toBeats: Story["toBeats"]): strin
           ? `  （情景）${b.text}`
           : b.kind === "note"
             ? `  （補足）${b.text}`
-            : `  ${b.speaker === undefined ? "（名前なしの吹き出し）" : names[b.speaker]}：${b.text}`,
+            : b.kind === "title"
+              ? `  （見出し）${b.text}`
+              : b.kind === "inner"
+                ? `  （心の声）${b.speaker === undefined ? "" : `${names[b.speaker]}：`}${b.text}`
+                : `  ${b.speaker === undefined ? "（名前なしの吹き出し）" : names[b.speaker]}：${b.text}`,
     )
     .join("\n");
 }

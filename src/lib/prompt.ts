@@ -1,4 +1,5 @@
 import { callName, pronouns, STAT_LABELS, type Plot, type StatKey, type Viewpoint } from "./characters";
+import { dayPart, describeClock, type Clock } from "./clock";
 import { isUgcId } from "./ugc-schema";
 import { fillPlot } from "./username";
 import type { ChatMessage } from "./llm";
@@ -12,6 +13,8 @@ export type PromptContext = {
   userTurns: number;
   /** ユーザーが決めた名前（当事者視点で、地の文と呼びかけに使う）。未設定なら空 */
   userName?: string;
+  /** 遊んでいる人の端末の時刻（あれば、時間に触れてよい場面で使う） */
+  clock?: Clock;
 };
 
 /**
@@ -55,8 +58,21 @@ export function describeStats(stats: Record<StatKey, number>): string[] {
   });
 }
 
+/** 出来事を起こす返答の、最初の行の見出し（画面では、上下に黒い帯が入るカットインになる） */
+const TITLE_RULE =
+  "出来事を起こす返答では、いちばん最初の行に、その場面の見出しを「▼」に続けて8〜16字で書きます（例：▼閉店後、ふたりきり）。見出しは物語の章の題のような短い言葉にし、台詞や「」は入れません。出来事を起こさない返答には書きません。";
+
 /** 山場を必ず起こす往復数。体験設計「3往復で山場」に対応。 */
 export const HOOK_DEADLINE_TURNS = 3;
+
+/**
+ * 演出を入れる返答（文章AIは「ときどき〜する」を守りにくいので、どの返答で入れるかをこちらで決めて、その返答で指示する）。
+ * 山場：3往復目、そのあと4往復ごと（7・11…）。その前の返答で兆しを入れる。
+ * 心の声：2往復目から3往復ごと（2・5・8…）。言いかけ：4往復目から6往復ごと（4・10・16…）、心の声と重なる回は入れない
+ */
+export const hookTurn = (t: number) => t === HOOK_DEADLINE_TURNS || (t > HOOK_DEADLINE_TURNS && (t - HOOK_DEADLINE_TURNS) % 4 === 0);
+export const innerTurn = (t: number) => t >= 2 && t % 3 === 2;
+export const hesitateTurn = (t: number) => t >= 4 && t % 6 === 4 && !innerTurn(t);
 
 export function buildSystemPrompt(ctx: PromptContext): string {
   const { viewpoint, isMinor, summary, userTurns } = ctx;
@@ -165,15 +181,16 @@ export function buildSystemPrompt(ctx: PromptContext): string {
   const hook =
     userTurns <= 1
       ? ["【展開】", "物語は始まったばかりです。この返答では大きな出来事は起こさず、ユーザーの言葉に応えて会話を始めてください。"]
-      : userTurns < HOOK_DEADLINE_TURNS
+      : hookTurn(userTurns + 1)
         ? ["【展開】", "次の出来事のうち、会話の流れに合うものを1つ選び、この返答ではその兆し（きっかけ）だけを入れてください。次の返答で起こします。", ...hooks]
-        : userTurns === HOOK_DEADLINE_TURNS
+        : hookTurn(userTurns)
           ? [
               "【展開】",
               "まだ起きていなければ、この返答で次の出来事のうち1つを必ず起こし、関係を動かしてください（この回だけ、字数を少し超えても構いません）。すでに起きていれば、繰り返さずにその先へ進めてください。",
               viewpoint === "self"
                 ? "ただし、ユーザーが直前に自分の出来事や気持ちを打ち明けたときは、この返答ではまずそれに応え（味方をする・ねぎらう・一言だけ聞き返す）、出来事は次の返答で起こします。"
                 : "ただし、ユーザーの入力がつぶやきのときは、この返答では兆しだけにして、次の演出の指示に合わせて起こします。演出の指示があるときは、その指示を優先します。",
+              TITLE_RULE,
               ...hooks,
             ]
           : [
@@ -182,6 +199,7 @@ export function buildSystemPrompt(ctx: PromptContext): string {
               viewpoint === "self"
                 ? "同じ場所・同じ動作で3往復以上止まっていたら、時間を進める・場所を移る・知らせが届くなどで場面を動かします。3〜4往復に1回は、次のうちまだ起きていない出来事か、同じくらいの大きさの出来事を起こしてください（ユーザーが打ち明け話をしている間は待つ）。"
                 : "ユーザーの演出の指示を優先します。指示が続かず同じ場面で3往復以上止まっていたら、次のうちまだ起きていない出来事か、同じくらいの大きさの出来事で場面を動かしてください。",
+              TITLE_RULE,
               ...hooks,
             ];
 
@@ -217,9 +235,26 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     multi
       ? `- 書き方の例（中身はまねしない）：\n*${callNames[0]}が窓の外から視線を戻す*\n${callNames[0]}「……で、どうするんだ」\n${callNames[1] ?? callNames[0]}「どうもしない。*肩をすくめる* いつもどおりだ」\n> 廊下の向こうで、誰かが笑う声がした。`
       : "- 書き方の例（中身はまねしない）：\n*椅子の背にもたれ、天井を仰ぐ。長い脚を投げ出したまま、目だけをこちらに向ける*\n……で、なんの用。\n> 窓の外で、雨が少し強くなった。",
+    `- 心の声：${multi ? "台詞を言った人物が" : "登場人物が"}口に出さない本音を〈〉で囲んだ1文（10〜40字）にして、その台詞のすぐあとに独立した行で書きます（例：〈……三時間前から待ってたなんて、言えるか〉）。本音は台詞と少しずれていてよく（強がり・照れ・嫉妬）、素直になれない人物ほどずれを大きくします。本音は相手に聞こえていないので、相手が本音を知っている前提で話を進めません。〈〉の中に *…* や「」は入れず、${viewpoint === "self" ? "ユーザー" : "読者"}の心の声は書きません。心の声は【この返答で】に指示があるときだけ書きます。`,
+    "- 言いかけてやめた言葉：言いかけてやめた短い言葉を ~~ ~~ で囲み、そのすぐあとに言い直した言葉を続けます（例：~~好きだ~~……好きにしろ）。打ち消すのは台詞の中の短い言葉だけにします。【この返答で】に指示があるときだけ使います。",
     "- 相手の反応を待つ余白を残します。一度に多くを語らず、説明や心情の描写を重ねないこと。",
     "- 最後は、ユーザーが次に何かを返したくなる余白を残して終えてください。",
     "- 物語の外に出て説明したり、ユーザーに次の行動や指示を求めたり（「次は何をしますか？」など）はしません。物語の場面の中で終えてください。",
+  ];
+
+  const thisTurn = [
+    ...(hookTurn(userTurns)
+      ? [
+          "- この返答で出来事を起こし、いちばん最初の行に必ず、その場面の見出しを「▼」に続けて8〜16字で書きます（例：▼閉店後、ふたりきり）。ユーザーが打ち明け話をしていて、出来事を次の返答に回すときだけ書きません。",
+        ]
+      : []),
+    ...(innerTurn(userTurns)
+      ? [`- 台詞のあとに、${multi ? "その台詞を言った人物の" : ""}口に出さない本音を〈〉で囲んで1つ、独立した行で書きます（10〜40字）。`]
+      : hesitateTurn(userTurns)
+        ? [
+            "- 台詞の中に、言いかけてやめた短い言葉（2〜8字）を必ず1つ入れ、その言葉を ~~ ~~ で囲み、すぐあとに言い直した言葉を続けます（例：~~会いたかった~~……遅かったな／~~お前のこと~~……いや、なんでもない）。",
+          ]
+        : []),
   ];
 
   // 一人称と相手の呼び方は、見せ場ほど崩れやすい。口調の指定から抜き出し、最後にもう一度並べる
@@ -271,8 +306,17 @@ export function buildSystemPrompt(ctx: PromptContext): string {
     ...format,
     "",
     ...japanese,
+    ...(ctx.clock
+      ? [
+          "",
+          "【いまの時間】",
+          `ユーザーのいる場所は、いま${describeClock(ctx.clock)}です。物語の中の時間が決まっていなければ、場面の時間をこれに合わせてかまいません。会話の始めや、時間の話になったときだけ自然に触れ（${dayPart(ctx.clock.hour) === "midnight" ? "深夜なら「まだ起きてたのか」と気づかう・眠そうにする、など" : "朝なら朝の、夜なら夜の空気を少しだけ"}）、毎回は触れません。物語の中の時間が決まっているときは、そちらを優先し、触れません。`,
+        ]
+      : []),
     ...(addressing.length ? ["", "【呼び方の確認】", ...addressing] : []),
     ...(summary ? ["", "【これまでのあらすじ】", summary] : []),
+    // この返答で入れる演出（最後に置くと、文章AIが忘れにくい）
+    ...(thisTurn.length ? ["", "【この返答で】", ...thisTurn] : []),
   ].join("\n");
 }
 

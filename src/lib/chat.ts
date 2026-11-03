@@ -1,4 +1,5 @@
 import type { Plot } from "./characters";
+import type { Clock } from "./clock";
 import { generateText, type LLMProvider, type Tier } from "./llm";
 import { hasForeignText, stripForeignScripts } from "./japanese";
 import { buildSystemPrompt, toApiMessages } from "./prompt";
@@ -35,6 +36,8 @@ export type TurnInput = {
   /** 送信するメッセージ。再生成のときは省略。 */
   message?: string;
   regenerate?: boolean;
+  /** 遊んでいる人の端末の時刻 */
+  clock?: Clock;
   tier?: Tier;
   signal?: AbortSignal;
   judge?: JudgeHook;
@@ -82,6 +85,7 @@ export async function* runTurn(input: TurnInput): AsyncGenerator<ChatEvent> {
     summary: conv.summary,
     userTurns: Number(turns[0]?.n ?? 0),
     userName: session.name,
+    clock: input.clock,
   });
 
   let controller = new AbortController();
