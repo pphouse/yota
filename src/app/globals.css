@@ -26,6 +26,10 @@
   --color-mist: var(--mist);
   --color-amber: var(--amber);
   --color-brand: var(--brand);
+  /* 読みもの（/blog）の白い画面の文字色 */
+  --color-ink: #1d2030;
+  --color-ink-2: #474c5c;
+  --color-ink-3: #7b8090;
   --font-sans: "Noto Sans JP", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
   /* 明朝はやめて、すべてゴシックにする */
   --font-mincho: var(--font-sans);
@@ -179,25 +183,64 @@ body {
 .cutin-title { animation: cutin-title 2.6s ease-out both; }
 .cutin-flash { animation: cutin-flash 2.6s ease-out both; }
 
-/* 読みもの（/blog）の本文。Markdown から作った HTML に当てる */
-.blog-body { font-size: 0.95rem; line-height: 1.95; color: color-mix(in oklab, var(--paper) 90%, transparent); }
-.blog-body h2 { margin-top: 2.75rem; padding-top: 0.25rem; font-size: 1.2rem; font-weight: 900; line-height: 1.5; color: var(--paper); scroll-margin-top: 4rem; }
-.blog-body h3 { margin-top: 1.75rem; font-size: 1rem; font-weight: 800; line-height: 1.6; color: var(--paper); }
-.blog-body p { margin-top: 1rem; }
-.blog-body strong { color: var(--paper); font-weight: 800; background: linear-gradient(transparent 62%, color-mix(in oklab, var(--brand) 35%, transparent) 62%); }
-.blog-body a { color: var(--paper); text-decoration: underline; text-decoration-color: var(--brand); text-underline-offset: 3px; }
-.blog-body a:hover { color: var(--brand); }
-.blog-body ul, .blog-body ol { margin-top: 0.75rem; padding-left: 1.4rem; }
+/* 読みもの（/blog）。アプリと違い、長い文章を読みやすいよう白い地にする */
+.blog-page { background: #f7f6f9; color: #1d2030; font-feature-settings: normal; }
+.blog-body { font-size: 1.02rem; line-height: 2; color: #2b2f3d; letter-spacing: 0.02em; }
+.blog-body > :first-child { margin-top: 0; }
+.blog-body p { margin-top: 1.4rem; }
+.blog-body h2 {
+  position: relative; margin-top: 4rem; display: flex; align-items: baseline; gap: 0.7rem;
+  border-radius: 0.9rem; background: #fff; padding: 1rem 1.1rem 1rem 1.25rem;
+  font-size: 1.28rem; font-weight: 900; line-height: 1.55; color: #1d2030;
+  box-shadow: inset 4px 0 0 var(--brand), 0 1px 2px rgb(0 0 0 / 0.04); scroll-margin-top: 4.5rem;
+}
+.blog-body .h2-num { flex-shrink: 0; font-size: 0.85rem; font-weight: 900; color: var(--brand); letter-spacing: 0.05em; }
+.blog-body h3 {
+  margin-top: 2.6rem; border-bottom: 2px solid #ecdff5; padding-bottom: 0.45rem;
+  font-size: 1.1rem; font-weight: 800; line-height: 1.6; color: #1d2030; scroll-margin-top: 4.5rem;
+}
+.blog-body strong { font-weight: 800; color: #1d2030; background: linear-gradient(transparent 60%, #ffe3f0 60%); }
+.blog-body a { color: #9b30cf; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.blog-body a:hover { color: #ff4f9a; }
+.blog-body ul, .blog-body ol { margin-top: 1.2rem; padding-left: 1.4rem; }
 .blog-body ul { list-style: disc; }
 .blog-body ol { list-style: decimal; }
-.blog-body li { margin-top: 0.35rem; }
-.blog-body li::marker { color: var(--mist); }
-.blog-body blockquote { margin-top: 1rem; border-left: 3px solid var(--brand); padding: 0.25rem 0 0.25rem 1rem; color: var(--mist); font-size: 0.85rem; }
-.blog-body code { font-size: 0.85em; background: var(--night-3); border-radius: 0.35rem; padding: 0.1rem 0.35rem; }
-.blog-body pre { margin-top: 1rem; overflow-x: auto; white-space: pre-wrap; border-radius: 1rem; background: var(--night-2); padding: 1rem 1.1rem; font-size: 0.82rem; line-height: 1.8; }
-.blog-body pre code { background: none; padding: 0; }
-.blog-body .table-wrap { margin-top: 1rem; overflow-x: auto; border-radius: 1rem; border: 1px solid rgb(255 255 255 / 0.08); }
-.blog-body table { width: 100%; border-collapse: collapse; font-size: 0.82rem; line-height: 1.7; }
-.blog-body th { background: var(--night-2); text-align: left; font-weight: 800; color: var(--paper); white-space: nowrap; }
-.blog-body th, .blog-body td { padding: 0.55rem 0.8rem; border-bottom: 1px solid rgb(255 255 255 / 0.06); vertical-align: top; }
+.blog-body li { margin-top: 0.5rem; padding-left: 0.2rem; }
+.blog-body li::marker { color: var(--brand); font-weight: 800; }
+.blog-body code { font-size: 0.85em; background: #f0ebf5; border-radius: 0.35rem; padding: 0.1rem 0.4rem; color: #6b2a92; }
+.blog-body pre { margin-top: 1.4rem; overflow-x: auto; white-space: pre-wrap; border-radius: 1rem; background: #23212b; color: #f3f1f7; padding: 1.1rem 1.2rem; font-size: 0.85rem; line-height: 1.85; }
+.blog-body pre code { background: none; padding: 0; color: inherit; }
+.blog-body hr { margin: 3rem 0; border: 0; border-top: 1px dashed #d8d3df; }
+/* 表 */
+.blog-body .table-wrap { margin-top: 1.5rem; overflow-x: auto; border-radius: 0.9rem; background: #fff; box-shadow: 0 0 0 1px #e6e2ec; }
+.blog-body table { width: 100%; border-collapse: collapse; font-size: 0.88rem; line-height: 1.7; }
+.blog-body th { background: #f4ecfa; text-align: left; font-weight: 800; color: #1d2030; white-space: nowrap; }
+.blog-body th, .blog-body td { padding: 0.7rem 0.9rem; border-bottom: 1px solid #eeeaf2; vertical-align: top; }
+.blog-body td { min-width: 6.5em; }
+.blog-body td:first-child { font-weight: 700; color: #1d2030; }
 .blog-body tr:last-child td { border-bottom: 0; }
+.blog-body tbody tr:nth-child(even) td { background: #fbfafc; }
+/* 囲み枠 */
+.blog-body .box { margin-top: 1.8rem; border-radius: 1rem; padding: 1.1rem 1.2rem 1.2rem; font-size: 0.95rem; line-height: 1.9; }
+.blog-body .box > p:not(.box-title) { margin-top: 0.5rem; }
+.blog-body .box ul, .blog-body .box ol { margin-top: 0.4rem; }
+.blog-body .box-title { margin: 0; display: flex; align-items: center; gap: 0.4rem; font-weight: 900; font-size: 0.92rem; }
+.blog-body .box-title::before { display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 999px; color: #fff; font-size: 0.75rem; }
+.blog-body .box-point { background: #fff4f9; box-shadow: inset 0 0 0 1px #ffd0e4; }
+.blog-body .box-point .box-title { color: #d6336c; }
+.blog-body .box-point .box-title::before { content: "✓"; background: #ff4f9a; }
+.blog-body .box-note { background: #f1f6ff; box-shadow: inset 0 0 0 1px #d3e2ff; }
+.blog-body .box-note .box-title { color: #2f5fd0; }
+.blog-body .box-note .box-title::before { content: "i"; background: #4a7cf0; font-family: serif; font-style: italic; }
+.blog-body .box-warn { background: #fff8ea; box-shadow: inset 0 0 0 1px #ffe2a8; }
+.blog-body .box-warn .box-title { color: #b36b00; }
+.blog-body .box-warn .box-title::before { content: "!"; background: #f0a020; }
+/* yota の紹介カード */
+.blog-body .app-card { margin-top: 2rem; display: grid; grid-template-columns: auto 1fr; gap: 0.9rem; align-items: center; border-radius: 1.1rem; background: #fff; padding: 1.1rem; box-shadow: 0 0 0 1px #ece4f3, 0 6px 20px -8px rgb(194 84 240 / 0.25); }
+.blog-body .app-card-icon { border-radius: 0.9rem; }
+.blog-body .app-card-main { min-width: 0; }
+.blog-body .app-card-name { margin: 0; font-weight: 900; font-size: 1rem; color: #1d2030; }
+.blog-body .app-card-desc { margin: 0.15rem 0 0; font-size: 0.8rem; line-height: 1.5; color: #474c5c; }
+.blog-body .app-card-tags { margin: 0.45rem 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.blog-body .app-card-tags li { margin: 0; padding: 0.05rem 0.5rem; border-radius: 999px; background: #f4ecfa; color: #8a2fc0; font-size: 0.7rem; font-weight: 800; }
+.blog-body .app-card-btn { grid-column: 1 / -1; display: block; border-radius: 999px; background: var(--brand-grad); padding: 0.75rem; text-align: center; font-weight: 900; color: #fff !important; text-decoration: none; }
