@@ -9,6 +9,14 @@
 
 /** 心の声（閉じていない〈 は、流している途中の心の声） */
 export const INNER = /〈([^〈〉]*)(〉|$)/g;
+/**
+ * 心の声の括弧のゆれをそろえる。文章AIは〈〉の代わりに <…>・＜…＞・《…》 を使うことがある。
+ * 流している途中で閉じていない括弧も、心の声の始まりとして扱う
+ */
+export function normalizeMarks(text: string): string {
+  return text.replace(/[<＜《]([^<>＜＞《》〈〉\n]{1,80})[>＞》]/g, "〈$1〉").replace(/[<＜《]([^<>＜＞《》〈〉\n]*)$/, "〈$1");
+}
+
 /** 山場の見出しの行 */
 export const TITLE_LINE = /^\s*[▼▽]\s*(.*)$/;
 
@@ -18,7 +26,7 @@ export const TITLE_LINE = /^\s*[▼▽]\s*(.*)$/;
  * あらすじでは（本音：…）として残す
  */
 export function plainStory(text: string, opts: { inner?: "drop" | "keep" } = {}): string {
-  return text
+  return normalizeMarks(text)
     .split("\n")
     .map((l) => {
       const t = l.match(TITLE_LINE);
@@ -152,7 +160,7 @@ export function toBeats(text: string, names: string[]): Beat[] {
     if (rest.length) beats.push(...beatsOf(rest.join("\n"), names));
     rest = [];
   };
-  for (const line of text.replaceAll("＊", "*").split("\n")) {
+  for (const line of normalizeMarks(text).replaceAll("＊", "*").split("\n")) {
     const title = line.match(TITLE_LINE);
     if (title) {
       flush();

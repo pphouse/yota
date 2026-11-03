@@ -24,6 +24,14 @@ describe("心の声（〈…〉）", () => {
     expect(blocks[1].kind === "bubble" && blocks[1].speaker).toBe(1);
   });
 
+  it("〈〉の代わりに <…>・＜…＞・《…》 で書かれても心の声にする。台詞の情景の行（> …）はそのまま", () => {
+    for (const raw of ["別に\n<……眠れないって、俺と同じか>", "別に\n＜……眠れないって、俺と同じか＞", "別に\n《……眠れないって、俺と同じか》"]) {
+      expect(toBeats(raw, solo).at(-1)).toMatchObject({ kind: "inner", text: "……眠れないって、俺と同じか" });
+    }
+    expect(toBeats("> 窓の外で雨が強くなった。", solo)).toEqual([{ kind: "scene", text: "窓の外で雨が強くなった。" }]);
+    expect(plainStory("別に\n<聞こえてない>")).toBe("別に");
+  });
+
   it("流している途中の閉じていない〈 も、心の声として扱う（中身を先に見せない）", () => {
     const beats = toBeats("知らない\n〈本当は", solo);
     expect(beats.at(-1)).toMatchObject({ kind: "inner", text: "本当は", open: true });
@@ -79,7 +87,7 @@ describe("プロンプトの書き方の決まり", () => {
     const plot = getPlot("sleepy-prince")!;
     const base = { plot, viewpoint: "self" as const, isMinor: false, summary: "" };
     const early = buildSystemPrompt({ ...base, userTurns: 1 });
-    expect(early).toContain("〈〉で囲んだ1文");
+    expect(early).toContain("〈〉（山かっこ。半角の < > ではない）で囲んだ1文");
     expect(early).toContain("~~ ~~ で囲み");
     expect(early).not.toContain("\n【この返答で】\n");
     expect(buildSystemPrompt({ ...base, userTurns: HOOK_DEADLINE_TURNS })).toContain("「▼」に続けて");
