@@ -105,7 +105,7 @@ export function renderBody(md: string, ctaHref: string): { html: string; toc: { 
     if (depth === 3 && toc.length) {
       const parent = toc[toc.length - 1];
       const id = `${parent.id}-${parent.sub.length + 1}`;
-      parent.sub.push({ id, text: plain });
+      parent.sub.push({ id, text: plain.replace(/^\d+[.．、]\s*/, "") });
       return `<h3 id="${id}">${text}</h3>`;
     }
     return `<h${depth}>${text}</h${depth}>`;
