@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Plot, Viewpoint } from "@/lib/characters";
-import { LOGO_MOON, LOGO_VIEWBOX, LOGO_WORD } from "@/components/Logo";
+import { LOGO_MOON, LOGO_TBAR, LOGO_VIEWBOX, LOGO_WORD } from "@/components/Logo";
 import { track } from "@/lib/client";
 import { mangaPanels, pickQuote, type MangaPanels } from "@/lib/story";
 import { isNativeApp, shareImageNative } from "@/lib/native";
@@ -331,6 +331,7 @@ function draw(canvas: HTMLCanvasElement, plot: Plot, panels: MangaPanels, images
   ctx.scale(k, k);
   ctx.fillStyle = PAPER;
   ctx.fill(new Path2D(LOGO_WORD));
+  ctx.fill(new Path2D(LOGO_TBAR));
   ctx.fillStyle = brand(ctx, LOGO_VIEWBOX.w * 0.75, LOGO_VIEWBOX.w);
   ctx.fill(new Path2D(LOGO_MOON));
   ctx.restore();
