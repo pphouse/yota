@@ -151,6 +151,8 @@ const MIGRATIONS = [
   `ALTER TABLE sessions ADD COLUMN name TEXT NOT NULL DEFAULT ''`,
   // どこから来た人か（募集の投稿のリンクに付けた ?ref=）
   `ALTER TABLE sessions ADD COLUMN ref TEXT NOT NULL DEFAULT ''`,
+  // 運営が管理者画面から作った作品（ホームの「新作」に出す）。ユーザーの作品を運営が選んで入れることもできる
+  `ALTER TABLE user_plots ADD COLUMN official INTEGER NOT NULL DEFAULT 0`,
 ];
 
 let client: Client | undefined;

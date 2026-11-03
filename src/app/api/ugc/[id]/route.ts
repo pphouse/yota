@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { z } from "zod";
+import { isAdmin } from "@/lib/admin";
 import { jacketEnabled } from "@/lib/jacket";
 import { getSession } from "@/lib/session";
 import { logEvent } from "@/lib/store";
@@ -13,11 +14,13 @@ export const maxDuration = 300;
 const EDITS_PER_DAY = 60;
 
 /** 作者の作品を引く。作者でなければ、ないことにする */
+/** 作者の作品を引く。作者でなければ、ないことにする（管理者はどの作品も直せる） */
 async function ownEntry(id: string) {
-  const session = await getSession();
-  const entry = await getUgc(id);
-  if (!session || !entry || entry.sessionId !== session.id || entry.meta.status === "removed") return null;
-  return { session, entry };
+  const [session, entry, admin] = await Promise.all([getSession(), getUgc(id), isAdmin()]);
+  if (!session || !entry) return null;
+  if (admin) return { session, entry, admin };
+  if (entry.sessionId !== session.id || entry.meta.status === "removed") return null;
+  return { session, entry, admin };
 }
 
 const notFound = () => Response.json({ error: "作品が見つかりません" }, { status: 404 });
@@ -46,7 +49,8 @@ export async function PUT(req: Request, ctx: RouteContext<"/api/ugc/[id]">) {
   if ((await countRecent(session.id, "ugc_edit")) >= EDITS_PER_DAY) {
     return Response.json({ error: "今日保存できる回数の上限に達しました。また明日お試しください" }, { status: 429 });
   }
-  const status = entry.meta.status === "public" ? "pending" : entry.meta.status;
+  // 公開中の作品を作者が直したら、もう一度確認する。管理者が直したときはそのまま
+  const status = own.admin ? entry.meta.status : entry.meta.status === "public" ? "pending" : entry.meta.status;
   const redraw = jacketEnabled() && (input.title !== entry.input.title || entry.meta.jacketStatus === "failed");
   await updateUgc(id, input, { status, jacketStatus: redraw ? "pending" : undefined });
   await logEvent(session.id, "ugc_edit", { id, redraw });

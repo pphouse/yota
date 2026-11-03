@@ -79,7 +79,9 @@ export function CreatePlot() {
   const params = useSearchParams();
   const editId = params.get("id");
   const importParam = params.get("import");
-  const key = storageKey(editId);
+  // 管理者画面の「作品を追加」から来たとき（?official=1）は、運営の作品として作る（保存するとすぐホームの「新作」に出る）
+  const official = params.get("official") === "1" && !editId;
+  const key = official ? "yota:ugc-official" : storageKey(editId);
   const [phase, setPhase] = useState<Phase>("loading");
   const [userName, setUserName] = useState("");
   const [draft, setDraft] = useState<Draft>(() => emptyDraft("self"));
@@ -225,7 +227,7 @@ export function CreatePlot() {
     if (problems.length) return setNotice(PROBLEM_MESSAGE[problems[0]]);
     setError(null);
     setPhase("saving");
-    const body = JSON.stringify({ plot: payload });
+    const body = JSON.stringify({ plot: payload, ...(official ? { official: true } : {}) });
     const r = editId
       ? await api<{ error?: string }>(`/api/ugc/${encodeURIComponent(editId)}`, { method: "PUT", body })
       : await api<{ id?: string; error?: string }>("/api/ugc", { method: "POST", body });
@@ -364,10 +366,10 @@ export function CreatePlot() {
       <main className={`mx-auto w-full max-w-xl ${editing ? "pb-48" : "pb-24"}`}>
         <header className="sticky top-0 z-20 bg-night/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
           <div className="flex h-12 items-center gap-2 px-3">
-            <Link href={editId ? `/u/${editId}` : "/"} aria-label="戻る" className="press grid size-9 place-items-center rounded-full text-mist hover:text-paper">
+            <Link href={official ? "/admin" : editId ? `/u/${editId}` : "/"} aria-label="戻る" className="press grid size-9 place-items-center rounded-full text-mist hover:text-paper">
               <BackIcon size={22} />
             </Link>
-            <p className="text-[0.95rem] font-bold">{editId ? "作品を直す" : "作品をつくる"}</p>
+            <p className="text-[0.95rem] font-bold">{editId ? "作品を直す" : official ? "運営の作品をつくる" : "作品をつくる"}</p>
             {editing && savedAt && <p className="ml-auto pr-1 text-[0.68rem] text-mist">下書きを保存しました {timeText(savedAt)}</p>}
           </div>
         </header>
@@ -530,6 +532,11 @@ export function CreatePlot() {
                     </button>
                   </div>
                 </div>
+              )}
+              {official && (
+                <p className="mb-4 rounded-2xl border border-brand/30 bg-night-2 px-4 py-3 text-[0.8rem] leading-6 text-paper/90">
+                  運営の作品として作っています。「公開する」を押すと、確認なしですぐにホームの「新作」に出ます。
+                </p>
               )}
               {meta?.status === "public" && (
                 <p className="mb-4 rounded-2xl bg-night-2 px-4 py-3 text-[0.8rem] leading-6 text-mist">
@@ -761,7 +768,7 @@ export function CreatePlot() {
                 試しに話す
               </button>
               <button type="button" onClick={save} disabled={phase === "saving"} className={`press rounded-2xl py-3.5 text-[0.95rem] font-black ${missing.length || problems.length ? "bg-night-3 text-mist" : "btn-brand"}`}>
-                {phase === "saving" ? "保存しています…" : missing.length ? `あと${missing.length}つで完成` : editId ? "保存する" : "完成"}
+                {phase === "saving" ? "保存しています…" : missing.length ? `あと${missing.length}つで完成` : editId ? "保存する" : official ? "公開する" : "完成"}
               </button>
             </div>
           </div>

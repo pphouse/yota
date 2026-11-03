@@ -1,4 +1,5 @@
 import { getPlot } from "@/lib/characters";
+import { isAdmin } from "@/lib/admin";
 import { getSession } from "@/lib/session";
 import { getUgc } from "@/lib/ugc";
 import { isUgcId } from "@/lib/ugc-schema";
@@ -15,5 +16,5 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/plots/[id]">) {
   if (!entry || entry.meta.status === "removed") return Response.json({ error: "作品が見つかりません" }, { status: 404 });
   const session = await getSession();
   // 画面に出す文章の {{user}} は「あなた」にする（会話では、サーバーが遊ぶ人の名前にする）
-  return Response.json({ plot: fillPlot(entry.plot, ""), meta: entry.meta, isOwner: Boolean(session && session.id === entry.sessionId) });
+  return Response.json({ plot: fillPlot(entry.plot, ""), meta: entry.meta, isOwner: Boolean(session && session.id === entry.sessionId) || (await isAdmin()) });
 }

@@ -13,7 +13,7 @@ import type { Plot } from "@/lib/characters";
 import { api } from "@/lib/client";
 import { isNativeApp, shareLink } from "@/lib/native";
 
-type Meta = { id: string; author: string; status: "private" | "pending" | "public"; jacketStatus: "none" | "pending" | "ready" | "failed" };
+type Meta = { id: string; author: string; status: "private" | "pending" | "public"; jacketStatus: "none" | "pending" | "ready" | "failed"; official?: boolean };
 type Loaded = { plot: Plot; meta: Meta; isOwner: boolean };
 
 const STATUS_TEXT: Record<Meta["status"], string> = {
@@ -112,7 +112,7 @@ export function UgcPlotView() {
         <h1 className="break-phrase text-balance text-[1.6rem] font-black leading-snug">{plot.title}</h1>
         <p className="break-phrase mt-2 text-[0.95rem] leading-7 text-paper/90">{plot.catchphrase}</p>
         <p className="mt-3 text-[0.78rem] font-medium leading-6 text-mist">{plot.tags.map((t) => `#${t}`).join(" ")}</p>
-        <p className="mt-1 text-[0.8rem] text-paper/80">作：{meta.author}</p>
+        <p className="mt-1 text-[0.8rem] text-paper/80">{meta.official ? "yota オリジナル" : `作：${meta.author}`}</p>
 
         <div className="mt-6">
           <Suspense fallback={<div className="h-14 rounded-2xl bg-night-3" />}>
@@ -126,7 +126,7 @@ export function UgcPlotView() {
         {isOwner && (
           <section className="mt-6 rounded-2xl bg-night-2 px-4 py-4">
             <h2 className="text-[0.78rem] font-bold text-brand">あなたの作品</h2>
-            <p className="mt-1 text-[0.88rem] leading-6 text-paper/90">{STATUS_TEXT[meta.status]}</p>
+            <p className="mt-1 text-[0.88rem] leading-6 text-paper/90">{meta.official ? "運営の作品として、ホームの「新作」に載っています" : STATUS_TEXT[meta.status]}</p>
             {meta.jacketStatus === "failed" && <p className="mt-1 text-xs text-amber">ジャケットの絵は作れませんでした。文字だけのジャケットで表示しています。</p>}
             <div className="mt-3 flex flex-wrap gap-2">
               <Link href={`/create?id=${meta.id}`} className="press rounded-full bg-paper px-4 py-2 text-sm font-bold text-night">
@@ -170,7 +170,7 @@ export function UgcPlotView() {
           </ul>
         </section>
         <div className="mt-10 text-xs leading-6 text-mist/80">
-          <p>ユーザーが作った作品です。登場人物はすべて架空の18歳以上の人物です。返答はAIが生成しています。</p>
+          <p>{meta.official ? "" : "ユーザーが作った作品です。"}登場人物はすべて架空の18歳以上の人物です。返答はAIが生成しています。</p>
           {!isOwner && (
             <p className="mt-2">
               <FeedbackSheet label="この作品を通報する" defaultCategory="report" context={`作品：${plot.id}`} />

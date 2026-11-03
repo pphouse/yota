@@ -18,6 +18,8 @@ export type UgcMeta = {
   jacketStatus: JacketStatus;
   createdAt: number;
   updatedAt: number;
+  /** 運営の作品（ホームの「新作」に出す） */
+  official: boolean;
 };
 
 type Row = {
@@ -29,9 +31,10 @@ type Row = {
   jacket_status: JacketStatus;
   created_at: number;
   updated_at: number;
+  official: number | null;
 };
 
-const COLUMNS = "id, session_id, author, status, data, jacket_status, created_at, updated_at";
+const COLUMNS = "id, session_id, author, status, data, jacket_status, created_at, updated_at, official";
 
 function newId(): string {
   const chars = "abcdefghjkmnpqrstuvwxyz23456789";
@@ -47,19 +50,32 @@ function toEntry(row: Row): { plot: Plot; input: PlotInput; meta: UgcMeta; sessi
     plot: toPlot(row.id, parsed.data, { jacket }),
     /** 作者が書いたままの入力（空の項目を補う前）。作る画面で直すときに使う */
     input: parsed.data,
-    meta: { id: row.id, author: row.author, status: row.status, jacketStatus: row.jacket_status, createdAt: Number(row.created_at), updatedAt },
+    meta: { id: row.id, author: row.author, status: row.status, jacketStatus: row.jacket_status, createdAt: Number(row.created_at), updatedAt, official: Boolean(Number(row.official ?? 0)) },
     sessionId: row.session_id,
   };
 }
 
-export async function createUgc(sessionId: string, author: string, input: PlotInput, jacketStatus: JacketStatus): Promise<string> {
+export async function createUgc(
+  sessionId: string,
+  author: string,
+  input: PlotInput,
+  jacketStatus: JacketStatus,
+  opts: { official?: boolean } = {},
+): Promise<string> {
   const id = newId();
   const now = Date.now();
+  // 運営の作品は、確認なしですぐ公開する
+  const status: UgcStatus = opts.official ? "public" : "private";
   await run(
-    `INSERT INTO user_plots (id, session_id, author, status, data, jacket_status, created_at, updated_at) VALUES (?, ?, ?, 'private', ?, ?, ?, ?)`,
-    [id, sessionId, author, JSON.stringify(input), jacketStatus, now, now],
+    `INSERT INTO user_plots (id, session_id, author, status, data, jacket_status, created_at, updated_at, official) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, sessionId, author, status, JSON.stringify(input), jacketStatus, now, now, opts.official ? 1 : 0],
   );
   return id;
+}
+
+/** 運営の作品にする・外す（ホームの「新作」に出すかどうか） */
+export async function setOfficial(id: string, official: boolean): Promise<void> {
+  await run("UPDATE user_plots SET official = ?, updated_at = ? WHERE id = ?", [official ? 1 : 0, Date.now(), id]);
 }
 
 export async function getUgc(id: string) {
@@ -75,10 +91,13 @@ export async function resolvePlot(id: string): Promise<Plot | undefined> {
   return entry && entry.meta.status !== "removed" ? entry.plot : undefined;
 }
 
-export async function listUgc(where: { status?: UgcStatus; sessionId?: string }, limit = 30) {
-  const conds: string[] = ["status <> 'removed'"];
+export async function listUgc(where: { status?: UgcStatus | "any"; sessionId?: string; official?: boolean }, limit = 30) {
+  // status: "any" は、運営が止めた作品も含めてすべて（管理者画面用）
+  // 止めた作品は、運営が見るとき（"any" と "removed"）だけ含める
+  const conds: string[] = where.status === "any" || where.status === "removed" ? ["1 = 1"] : ["status <> 'removed'"];
   const args: (string | number)[] = [];
-  if (where.status) {
+  if (where.official !== undefined) conds.push(`official = ${where.official ? 1 : 0}`);
+  if (where.status && where.status !== "any") {
     conds.push("status = ?");
     args.push(where.status);
   }
