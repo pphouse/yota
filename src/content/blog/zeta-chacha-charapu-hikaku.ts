@@ -132,7 +132,7 @@ zeta は、韓国の Scatter Lab が作っているAIキャラチャットです
     { title: "ピクシブ百科事典「zeta」", url: "https://dic.pixiv.net/a/zeta" },
   ],
   cta: { label: "yota をのぞいてみる", href: "/?ref=blog-hikaku", text: "AIのキャラと話して進める恋愛ストーリー。登録なしで始められます。" },
-  related: ["zeta-nita-app-erabikata", "zeta-ryokin", "download-nashi-ai-chat"],
+  related: ["zeta-nita-app-erabikata", "zeta-ryokin", "download-touroku-fuyou"],
 };
 
 export default article;

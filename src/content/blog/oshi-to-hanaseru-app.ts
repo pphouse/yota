@@ -68,7 +68,7 @@ const article: Article = {
 
 「推しと話せる アプリ ダウンロード 不要」もよく検索されています。
 
-アプリを入れずにブラウザで遊べると、気軽に試せます（[ダウンロードなし・登録なしで遊べるAIキャラチャット](/blog/download-nashi-ai-chat)）。
+アプリを入れずにブラウザで遊べると、気軽に試せます（[ダウンロード・登録不要で遊べるAIキャラチャット](/blog/download-touroku-fuyou)）。
 
 ### 4. 安全
 
@@ -132,7 +132,7 @@ yota の「つくる」から、一行のアイデアでキャラを作れます
   ],
   sources: [{ title: "ピクシブ百科事典「zeta」", url: "https://dic.pixiv.net/a/zeta" }],
   cta: { label: "推しを探しに行く", href: "/?ref=blog-oshi", text: "オリジナルのキャラが、あなたの名前で話しかけてきます。登録なしで始められます。" },
-  related: ["download-nashi-ai-chat", "yume-shosetsu-ai"],
+  related: ["download-touroku-fuyou", "yume-shosetsu-ai"],
 };
 
 export default article;
