@@ -8,6 +8,7 @@ import { maybeSummarize } from "@/lib/memory";
 import { getSession } from "@/lib/session";
 import { getConversation, logEvent } from "@/lib/store";
 import { recordActivity } from "@/lib/usage";
+import { authEnabled, guestLimit, isLoggedIn, sentMessages } from "@/lib/auth";
 
 const RATE_LIMIT_PER_MIN = Number(process.env.RATE_LIMIT_PER_MIN ?? 20);
 
@@ -37,6 +38,18 @@ export async function POST(req: Request) {
   );
   if (Number(recent[0]?.n ?? 0) >= RATE_LIMIT_PER_MIN) {
     return Response.json({ error: "少し間をあけてから送ってください。", code: "rate_limit" }, { status: 429 });
+  }
+
+  // ゲスト（ログインしていない人）は、送れる回数に上限がある。ログインすると、それまでの会話を引き継いで続けられる
+  let guestLeft: number | null = null;
+  if (authEnabled() && !parsed.data.regenerate && !(await isLoggedIn(session.id))) {
+    guestLeft = guestLimit() - (await sentMessages(session.id));
+    if (guestLeft <= 0) {
+      return Response.json(
+        { error: "ゲストで話せる回数を使い切りました。ログインすると、続きを保存して話せます。", code: "login_required" },
+        { status: 403 },
+      );
+    }
   }
 
   const usage = await recordActivity(session.id, session.isMinor);
@@ -78,6 +91,17 @@ export async function POST(req: Request) {
       };
       if (usage.lateNight) {
         send({ t: "notice", kind: "late_night", message: "夜遅くなってきました。続きはまた明日でも、物語は待っています。" });
+      }
+      // ゲストの残りが少なくなったら、先に知らせる（今回の送信を数えたあとの残り）
+      if (guestLeft !== null && guestLeft - 1 <= 3) {
+        send({
+          t: "notice",
+          kind: "guest",
+          message:
+            guestLeft - 1 > 0
+              ? `ゲストで話せるのは、あと${guestLeft - 1}回です。ログインすると、続きを保存して話し放題になります。`
+              : "ゲストで話せるのは、ここまでです。ログインすると、この続きから話せます。",
+        });
       }
       let done: Extract<ChatEvent, { t: "done" }> | undefined;
       try {

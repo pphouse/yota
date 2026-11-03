@@ -12,6 +12,7 @@ import { TextJacket } from "@/components/TextJacket";
 import type { Plot } from "@/lib/characters";
 import { api } from "@/lib/client";
 import { isNativeApp, shareLink } from "@/lib/native";
+import { XShareButton } from "@/components/XShareButton";
 
 type Meta = { id: string; author: string; status: "private" | "pending" | "public"; jacketStatus: "none" | "pending" | "ready" | "failed"; official?: boolean };
 type Loaded = { plot: Plot; meta: Meta; isOwner: boolean };
@@ -119,9 +120,12 @@ export function UgcPlotView() {
             <StartButtons plot={plot} />
           </Suspense>
         </div>
-        <button onClick={share} className="press mt-3 w-full rounded-2xl bg-night-3 py-3 text-sm font-bold">
-          {copied ? "リンクをコピーしました" : "リンクを送って遊んでもらう"}
-        </button>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <XShareButton text={`『${plot.title}』\n${plot.catchphrase}\n#yota`} event={{ name: "plot_share", props: { plotId: meta.id } }} />
+          <button onClick={share} className="press rounded-2xl bg-night-3 py-3 text-sm font-bold">
+            {copied ? "コピーしました" : "リンクを送る"}
+          </button>
+        </div>
 
         {isOwner && (
           <section className="mt-6 rounded-2xl bg-night-2 px-4 py-4">

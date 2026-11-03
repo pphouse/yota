@@ -2,6 +2,7 @@ import { z } from "zod";
 import { MIN_AGE, ageFrom, isValidBirth } from "@/lib/age";
 import { cookies } from "next/headers";
 import { deleteAccount } from "@/lib/account";
+import { accountOf, authEnabled, enabledProviders, guestLimit, sentMessages } from "@/lib/auth";
 import { createSession, getSession, SESSION_COOKIE, setSessionName } from "@/lib/session";
 import { listPlayedPlots, logEvent } from "@/lib/store";
 import { getUsage } from "@/lib/usage";
@@ -12,9 +13,18 @@ const NAME_ERROR = `名前は1〜${USER_NAME_MAX}文字で入力してくださ�
 
 export async function GET() {
   const session = await getSession();
-  if (!session) return Response.json({ session: null });
-  const [usage, played] = await Promise.all([getUsage(session.id, session.isMinor), listPlayedPlots(session.id)]);
-  return Response.json({ session: { isMinor: session.isMinor, name: session.name }, usage, played });
+  // ログインの手段（キーが入っているもの）。年齢の確認の前でも「ログインして続きから」に使う
+  const providers = enabledProviders();
+  if (!session) return Response.json({ session: null, providers });
+  const [usage, played, account, sent] = await Promise.all([
+    getUsage(session.id, session.isMinor),
+    listPlayedPlots(session.id),
+    accountOf(session.id),
+    sentMessages(session.id),
+  ]);
+  // ゲスト（ログインしていない人）には、送れる残りの回数を返す。ログインが使えないあいだは上限なし
+  const guest = account.length === 0 && authEnabled() ? { sent, limit: guestLimit() } : null;
+  return Response.json({ session: { isMinor: session.isMinor, name: session.name }, usage, played, providers, account: account.length ? { providers: account } : null, guest });
 }
 
 const Body = z.object({ birthYear: z.number().int(), birthMonth: z.number().int(), name: z.string().max(64), ref: z.string().max(64).optional() });

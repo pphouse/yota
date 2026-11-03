@@ -25,7 +25,7 @@ export type ChatEvent =
   | { t: "rewrite"; v: string }
   | { t: "done"; messageId: string; flagged: boolean; ms: { first: number | null; total: number } }
   | { t: "blocked"; message: string }
-  | { t: "notice"; kind: "care" | "late_night"; message: string; link?: string }
+  | { t: "notice"; kind: "care" | "late_night" | "guest"; message: string; link?: string }
   | { t: "error"; message: string };
 
 export type TurnInput = {

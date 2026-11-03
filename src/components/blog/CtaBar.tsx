@@ -37,7 +37,7 @@ export function CtaBar({ href, label }: { href: string; label: string }) {
         <img src="/icon-192.png" alt="" width={40} height={40} className="shrink-0 rounded-xl" />
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate text-[0.85rem] font-black text-ink">yota（ヨタ）</p>
-          <p className="truncate text-[0.7rem] text-ink-3">無料・広告なし・登録なし</p>
+          <p className="truncate text-[0.7rem] text-ink-3">無料・広告なし・登録なしで開始</p>
         </div>
         <Link
           href={href}

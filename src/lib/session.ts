@@ -48,6 +48,12 @@ export async function createSession(birthYear: number, birthMonth: number, name:
     ref,
     Date.now(),
   ]);
+  await setSessionCookie(id);
+  return toSession({ id, birth_year: birthYear, birth_month: birthMonth, name, ref });
+}
+
+/** この端末を、そのセッション（アカウント）につなぐ。ログインしたとき、アカウントのセッションに切りかえるのにも使う */
+export async function setSessionCookie(id: string): Promise<void> {
   (await cookies()).set(SESSION_COOKIE, id, {
     httpOnly: true,
     sameSite: "lax",
@@ -55,7 +61,6 @@ export async function createSession(birthYear: number, birthMonth: number, name:
     path: "/",
     maxAge: 60 * 60 * 24 * 365,
   });
-  return toSession({ id, birth_year: birthYear, birth_month: birthMonth, name, ref });
 }
 
 export async function setSessionName(id: string, name: string): Promise<void> {

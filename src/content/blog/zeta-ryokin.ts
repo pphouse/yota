@@ -94,7 +94,7 @@ iPhone のスクリーンタイムや Android のファミリーリンクで、�
 
 「広告なしで、課金も気にせず話したい」なら、ほかのアプリを試すのもひとつの手です。
 
-yota は、AIのキャラと会話しながら進める恋愛ストーリーのアプリです。**いまは広告なし・課金なし・登録なし**で遊べます。
+yota は、AIのキャラと会話しながら進める恋愛ストーリーのアプリです。**いまは広告なし・課金なし**で、登録なしで始められます（続けて話すときは、無料のログインだけ）。
 
 [[yota]]
 
@@ -140,7 +140,7 @@ zeta で作った自分のキャラを持ってくることもできます（[�
     { title: "ピクシブ百科事典「zeta」", url: "https://dic.pixiv.net/a/zeta" },
     { title: "App Store「zeta — AI Chat, Live Stories」（Scatter Lab, Inc.）", url: "https://apps.apple.com/us/app/1619030760" },
   ],
-  cta: { label: "yota を無料で遊ぶ", href: "/?ref=blog-zeta-ryokin", text: "広告なし・課金なし・登録なし。年齢の確認と名前を決めるだけで始められます。" },
+  cta: { label: "yota を無料で遊ぶ", href: "/?ref=blog-zeta-ryokin", text: "広告なし・課金なし。年齢の確認と名前を決めるだけで、登録なしで始められます。" },
   related: ["zeta-nita-app-erabikata", "zeta-nenrei"],
 };
 

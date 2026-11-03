@@ -175,6 +175,26 @@ src/
 - **ジャケット**：保存すると、画像生成AIでタイトル文字入りのジャケットを作る（`src/lib/jacket.ts`、返事を返したあとに作り、DB に webp で保存）。Vercel の環境変数に `IMAGE_API_KEY`（OpenAI 互換の Images API のキー）を入れると有効になる。`IMAGE_MODEL`（既定 gpt-image-1）・`IMAGE_BASE_URL`・`IMAGE_QUALITY` で変えられる。キーがないとき・作れなかったときは、推し色とタイトルだけの文字ジャケットを出す。
 - ユーザーの作品の ID は `u-` で始まり、紹介ページは `/u/<id>`、会話は `/chat/<id>`（こちらの作品と同じ画面）。
 
+## ログイン（LINE・Google・Apple）とゲストの上限
+
+登録なしで始められる（年齢の確認と名前だけの、匿名のセッション）。ゲストで送れるメッセージは `GUEST_MESSAGE_LIMIT` 回（既定 15）までで、使い切ると会話の画面でログインをすすめる。ログインした人は上限なし。仕組みは `src/lib/auth.ts`。
+
+- **ゲストの記録は引き継ぐ**：はじめてログインしたアカウントは、いまのセッションにそのまま結びつく。前にログインしたことのあるアカウント（機種変更など）なら、そのアカウントに切りかえ、ゲストのあいだの会話・作品をそちらへ移す。
+- **持つのは ID のハッシュだけ**：メール・名前・プロフィール画像は求めず、保存もしない（`identities` テーブルに、サービス名と、`AUTH_HASH_SALT` を混ぜた ID のハッシュ）。
+- **年齢の確認が先**：はじめての人がセッションなしでログインしようとしたら、先に年齢の確認をしてもらう。前にログインした人は、年齢の確認の画面の「以前ログインした方はこちら」から戻れる。
+- **アプリの中**：Google はアプリの中の画面でのログインを受け付けないので、iOS・Android のアプリでは Google のボタンを出さない。LINE を出すなら Apple も出す（Apple の審査 4.8）。
+- **キーが1つも入っていないあいだ**は、ログインのボタンも、ゲストの上限も出ない（今までどおり無制限）。
+- 戻り先（Callback / Redirect URI）は、どれも `https://yotachat.app/api/auth/<line|google|apple>/callback`。
+
+設定のしかた（入れたものから使えるようになる。入れたら Vercel で再デプロイ）：
+
+| サービス | どこで作るか | Vercel の環境変数 |
+| --- | --- | --- |
+| LINE | [LINE Developers](https://developers.line.biz/console/) でプロバイダー（yota制作委員会）を作り、「LINEログイン」のチャネル（アプリのタイプは「ウェブアプリ」）を作る。「LINEログイン設定」のコールバック URL に `https://yotachat.app/api/auth/line/callback`。メールアドレスの取得の申請は不要。最後にチャネルを「公開」にする（開発中のままだと、チャネルの管理者しかログインできない） | `LINE_CHANNEL_ID`・`LINE_CHANNEL_SECRET`（チャネル基本設定） |
+| Google | [Google Cloud](https://console.cloud.google.com/) の「Google Auth Platform」でアプリ名・サポートのメール・承認済みドメイン `yotachat.app`・プライバシーポリシーと規約の URL を入れ、対象を「外部」にして本番に公開する（使うのは `openid` だけなので審査は不要）。「クライアント」で「ウェブ アプリケーション」を作り、承認済みのリダイレクト URI に `https://yotachat.app/api/auth/google/callback` | `GOOGLE_CLIENT_ID`・`GOOGLE_CLIENT_SECRET` |
+| Apple | [Apple Developer](https://developer.apple.com/account/resources/identifiers/list) で、① App ID `app.yotachat` の「Sign in with Apple」をオン ② Services ID を作り（例：`app.yotachat.signin`）、「Sign in with Apple」の Configure で Primary App ID を `app.yotachat`、Domains を `yotachat.app`、Return URLs を `https://yotachat.app/api/auth/apple/callback` にする ③ Keys で「Sign in with Apple」の鍵を作り、`.p8` をダウンロード（1回しかできない） | `APPLE_SIGNIN_CLIENT_ID`（Services ID）・`APPLE_TEAM_ID`・`APPLE_SIGNIN_KEY_ID`・`APPLE_SIGNIN_PRIVATE_KEY`（`.p8` の中身を、BEGIN と END の行ごと） |
+| 共通 | ランダムな文字列を1つ決める。**あとから変えると、全員のログインがつながらなくなる**ので、最初に1回だけ | `AUTH_HASH_SALT`（任意で `GUEST_MESSAGE_LIMIT`） |
+
 ## Xから生まれる彼（`/x`）
 
 Xでログインすると、本人のプロフィールと最近の投稿100件（リポストを除く）を読み、文章AIが ① Xのタイプ ② 投稿のクセへの愛のあるツッコミ3つ ③ その人に刺さるオリジナルの彼の作品 を作る（`src/lib/x.ts`・`src/lib/x-analyze.ts`）。彼はユーザーの作品（private）として保存され、そのまま話せる・直せる。結果ページ `/x/<id>` はシェア用で、カードの画像（`opengraph-image`）も作る。
@@ -213,6 +233,6 @@ Xでログインすると、本人のプロフィールと最近の投稿100件�
 
 ## まだやっていないこと
 
-- アカウント登録（今は端末ごとの匿名セッション）
+- アプリの中の LINE ログインを、LINE のアプリに切りかえる形にする（今はアプリの中の画面で、メールとパスワードか QR コードでログインする）
 - 判定モデルによる二次判定（`safety.ts` の `JudgeHook` に差し込む口だけある）
-- 有料化、ユーザーによるキャラ作成、漫画化
+- 有料化、漫画化

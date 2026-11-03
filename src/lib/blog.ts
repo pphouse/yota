@@ -81,7 +81,7 @@ export function yotaCardHtml(href: string): string {
   <div class="app-card-main">
     <p class="app-card-name">yota（ヨタ）</p>
     <p class="app-card-desc">AIのキャラと話して進める恋愛ストーリー</p>
-    <ul class="app-card-tags"><li>無料</li><li>広告なし</li><li>登録なし</li><li>13歳以上</li></ul>
+    <ul class="app-card-tags"><li>無料</li><li>広告なし</li><li>登録なしで開始</li><li>13歳以上</li></ul>
   </div>
   <a href="${escapeHtml(href)}" class="app-card-btn cta-btn">無料で遊ぶ<span class="cta-arrow" aria-hidden="true">→</span></a>
 </div>`;

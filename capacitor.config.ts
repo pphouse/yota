@@ -21,8 +21,9 @@ const config: CapacitorConfig = {
   server: {
     url: serverUrl,
     cleartext: serverUrl.startsWith("http://"),
-    // アプリの中で開いてよい場所。X でログインする画面もアプリの中で開く（ログインの cookie をアプリに残すため）
-    allowNavigation: ["yotachat.app", "x.com", "*.x.com", "twitter.com", "*.twitter.com"],
+    // アプリの中で開いてよい場所。X・LINE・Apple のログインの画面もアプリの中で開く（ログインの cookie をアプリに残すため）。
+    // Google はアプリの中の画面でのログインを受け付けないので、アプリでは Google のボタンを出さない（LoginSheet）
+    allowNavigation: ["yotachat.app", "x.com", "*.x.com", "twitter.com", "*.twitter.com", "access.line.me", "*.line.me", "appleid.apple.com", "*.apple.com"],
     errorPath: "index.html",
   },
   ios: {

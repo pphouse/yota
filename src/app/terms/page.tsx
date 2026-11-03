@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "利用規約 — yota" };
 
 export default function TermsPage() {
   return (
-    <LegalPage title="利用規約" updated="2026年10月31日">
+    <LegalPage title="利用規約" updated="2026年11月3日">
       <p>
         この規約は、{OPERATOR.name}（以下「運営者」）が提供する「yota」（以下「本サービス」）の利用条件です。本サービスを使った時点で、この規約に同意したものとみなします。
       </p>
@@ -16,6 +16,7 @@ export default function TermsPage() {
         <li>本サービスは、AIが演じる架空のキャラクターと会話しながら物語を楽しむサービスです。</li>
         <li>キャラクターの返答はAIが自動で作るもので、事実と異なることや、意図しない内容が含まれることがあります。返答の内容を、医療・法律・お金などの判断に使わないでください。</li>
         <li>登場人物はすべて架空の人物で、成人として設定されています。</li>
+        <li>登録なしで、ゲストとして使い始められます。ゲストで話せる回数には上限があり、続けて使うときは LINE・Google・Apple のいずれかのアカウントでログインしてください。ログインしたアカウントは、あなた自身で管理してください。</li>
       </Ul>
 
       <H>2. 年齢</H>
@@ -50,7 +51,7 @@ export default function TermsPage() {
       </p>
 
       <H>7. 退会</H>
-      <p className="mt-2">設定の「データをすべて削除して退会する」から、いつでも退会できます。</p>
+      <p className="mt-2">設定の「データをすべて削除して退会する」から、いつでも退会できます。退会すると、ログインのつながりも消えます。</p>
 
       <H>8. 責任の範囲</H>
       <p className="mt-2">
