@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { NarrationIcon } from "@/components/icons";
 import { callName, type Persona } from "@/lib/characters";
@@ -81,36 +81,55 @@ function InlineText({ text }: { text: string }) {
   );
 }
 
-/** 心の声。ぼかして見せ、押すとしばらく読める */
+/** 心の声。ぼかして見せ、長押ししているあいだだけ読める（指を離すと、またぼかす） */
 function InnerVoice({ text, open, color }: { text: string; open?: boolean; color?: string }) {
   const [shown, setShown] = useState(false);
-  useEffect(() => {
-    if (!shown) return;
-    const t = setTimeout(() => setShown(false), 6000);
-    return () => clearTimeout(t);
-  }, [shown]);
+  const show = () => {
+    if (open || shown) return;
+    setShown(true);
+    // 対応している端末では、読めた合図に短く震わせる
+    navigator.vibrate?.(8);
+  };
+  const hide = () => setShown(false);
+  const c = color ?? "#c3a6ff";
   return (
     <button
       type="button"
-      onClick={(e) => {
+      // 指（マウス）を押しているあいだだけ見せる。スクロールで指が動いたとき（pointercancel）や、外に出たときも隠す
+      onPointerDown={(e) => {
         e.stopPropagation();
-        if (!open) setShown(true);
+        show();
       }}
-      aria-label={shown ? `心の声：${text}` : "心の声（押すと読めます）"}
+      onPointerUp={hide}
+      onPointerLeave={hide}
+      onPointerCancel={hide}
+      onBlur={hide}
+      // キーボードでは、スペースかエンターを押しているあいだだけ見せる
+      onKeyDown={(e) => {
+        if (e.key === " " || e.key === "Enter") {
+          e.preventDefault();
+          show();
+        }
+      }}
+      onKeyUp={hide}
+      onClick={(e) => e.stopPropagation()}
+      // 長押しで出る文字の選択やメニューを出さない
+      onContextMenu={(e) => e.preventDefault()}
+      aria-label={shown ? `心の声：${text}` : "心の声（長押しで読めます）"}
       aria-live="polite"
-      className="press -mx-1 flex w-[calc(100%+0.5rem)] items-start gap-2 rounded-xl border border-dashed px-2.5 py-1.5 text-left"
-      style={{ borderColor: `${color ?? "#c3a6ff"}66`, background: `${color ?? "#c3a6ff"}10` }}
+      className="-mx-1 flex w-[calc(100%+0.5rem)] touch-manipulation select-none items-start gap-2 rounded-xl border border-dashed px-2.5 py-1.5 text-left transition-transform duration-150 [-webkit-touch-callout:none]"
+      style={{ borderColor: `${c}${shown ? "cc" : "66"}`, background: `${c}${shown ? "22" : "10"}`, transform: shown ? "scale(0.985)" : undefined }}
     >
-      <span className="mt-[0.2rem] shrink-0 rounded-full px-1.5 py-px text-[0.6rem] font-black text-night" style={{ background: color ?? "#c3a6ff" }}>
+      <span className="mt-[0.2rem] shrink-0 rounded-full px-1.5 py-px text-[0.6rem] font-black text-night" style={{ background: c }}>
         心の声
       </span>
       <span
         aria-hidden={!shown}
-        className={`inner-voice break-phrase text-[0.88rem] leading-[1.75] text-paper/90 transition-[filter,opacity] duration-500 ${shown ? "" : "select-none opacity-80 blur-[5px]"}`}
+        className={`inner-voice break-phrase text-[0.88rem] leading-[1.75] text-paper/90 transition-[filter,opacity] duration-200 ${shown ? "" : "opacity-80 blur-[5px]"}`}
       >
         {text || "……"}
       </span>
-      {!shown && !open && <span className="ml-auto mt-[0.2rem] shrink-0 text-[0.62rem] font-bold text-mist">押して読む</span>}
+      {!shown && !open && <span className="ml-auto mt-[0.2rem] shrink-0 text-[0.62rem] font-bold text-mist">長押しで読む</span>}
     </button>
   );
 }
