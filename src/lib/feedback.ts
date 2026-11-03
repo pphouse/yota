@@ -2,11 +2,11 @@
 
 /** 会話のあとのひとこと評価（5が最高） */
 export const SCORES = [
-  { score: 5, emoji: "😍", label: "最高" },
-  { score: 4, emoji: "🙂", label: "よい" },
-  { score: 3, emoji: "😐", label: "ふつう" },
-  { score: 2, emoji: "😕", label: "いまいち" },
-  { score: 1, emoji: "😞", label: "よくない" },
+  { score: 5, label: "最高" },
+  { score: 4, label: "よかった" },
+  { score: 3, label: "ふつう" },
+  { score: 2, label: "いまいち" },
+  { score: 1, label: "よくない" },
 ] as const;
 
 /** 普段使っている他のキャラチャットアプリと比べて */

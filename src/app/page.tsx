@@ -7,6 +7,7 @@ import { Shelf } from "@/components/Shelf";
 import { UgcShelves } from "@/components/UgcShelves";
 import { UserName } from "@/components/UserName";
 import { PLOTS } from "@/lib/characters";
+import { OPERATOR } from "@/lib/operator";
 import { xConfig } from "@/lib/x";
 import Link from "next/link";
 import { MenuIcon, PenIcon } from "@/components/icons";
@@ -47,11 +48,21 @@ export default function Home() {
       <UgcShelves />
       <Shelf title="学園もの" plots={PLOTS.filter((p) => p.tags.includes("大学"))} />
       <PlotList plots={PLOTS} />
-      <footer className="mt-14 px-5 text-xs leading-6 text-mist/80">
-        <p className="mb-3 text-[0.8rem]">
-          yota はまだつくりはじめたばかりです。感想をいただけるとうれしいです。 <FeedbackSheet />
-        </p>
-        登場人物はすべて架空の18歳以上の人物です。返答はAIが生成しています。
+      <footer className="mt-16 border-t border-white/5 px-5 pt-6 text-xs leading-6 text-mist/80">
+        <nav aria-label="yota について" className="flex flex-wrap gap-x-5 gap-y-2 text-[0.78rem] font-bold text-mist">
+          <Link href="/support" className="hover:text-paper">
+            サポート
+          </Link>
+          <Link href="/terms" className="hover:text-paper">
+            利用規約
+          </Link>
+          <Link href="/privacy" className="hover:text-paper">
+            プライバシーポリシー
+          </Link>
+          <FeedbackSheet label="ご意見・お問い合わせ" triggerClassName="font-bold hover:text-paper" />
+        </nav>
+        <p className="mt-4">登場人物はすべて架空の18歳以上の人物です。返答はAIが生成しています。</p>
+        <p className="mt-1">© 2026 {OPERATOR.name}</p>
       </footer>
     </main>
   );

@@ -14,7 +14,8 @@ export function FeedbackSheet({
   label = "ご意見・不具合を送る",
   defaultCategory = "impression",
   context,
-}: { label?: string; defaultCategory?: NoteCategory; context?: string } = {}) {
+  triggerClassName = "font-bold text-paper/90 underline underline-offset-4",
+}: { label?: string; defaultCategory?: NoteCategory; context?: string; triggerClassName?: string } = {}) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<NoteCategory>(defaultCategory);
   const [text, setText] = useState("");
@@ -41,7 +42,7 @@ export function FeedbackSheet({
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="press font-bold text-paper/90 underline underline-offset-4">
+      <button onClick={() => setOpen(true)} className={`press ${triggerClassName}`}>
         {label}
       </button>
       {open &&
