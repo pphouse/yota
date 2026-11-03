@@ -7,17 +7,47 @@ yota のアプリは Capacitor で作っています。アプリは本番の htt
 - ネイティブのプロジェクト：`ios/`、`android/`
 - アイコンと起動画面の元画像：`assets/`（作り直すときは `npx @capacitor/assets generate --iconBackgroundColor '#0f0f13' --splashBackgroundColor '#0f0f13'`）
 
-## 1. 会社でやること（時間がかかるので最初に）
+## 0. いまの進め方：iOS を個人で先に出し、会社の準備を並行する
+
+Apple は、個人のアカウントで出したアプリを、あとで同じアカウントのまま会社（組織）に切り替えられる（アプリ・評価・TestFlight はそのまま、販売元の名前が会社名に変わる）。そこで iOS は個人で先に出し、会社ができたら切り替える。Android は会社ができてから組織のアカウントで出す（個人だと「12人で14日間のテスト」が要り、あとで組織のアカウントへアプリを移すことにもなるため）。
+
+1. **Apple Developer Program に個人で登録する**（年 99 USD、円で請求）
+   - 2ファクタ認証を入れた Apple ID と、身分証と同じ本名が要る。iPhone の「Apple Developer」アプリから登録すると、本人確認が早い。
+   - App Store の「販売元」には本名が出る（会社に切り替えると会社名になる）。
+2. **運営者の情報を Vercel に入れる**（入れないと規約などに【会社名を入れる】と出たままで、審査に通らない）。入れたら再デプロイし、`/terms`・`/privacy`・`/support` で確かめる。
+   ```bash
+   NEXT_PUBLIC_OPERATOR_NAME=（本名。App Store の販売元と同じにする）
+   NEXT_PUBLIC_OPERATOR_ADDRESS=所在地は、ご請求があれば遅滞なくお知らせします
+   NEXT_PUBLIC_OPERATOR_EMAIL=（問い合わせ用のメールアドレス）
+   ```
+   - 個人のあいだは、住所を載せず「ご請求があれば遅滞なくお知らせします」でよい（個人情報保護法では、本人の求めに応じて遅滞なく答えられればよい）。
+   - 問い合わせ用のメールは、`support@yotachat.app` を作るならメールの転送サービスで yotachat.app の MX を設定する（Vercel の DNS に追加）。すぐ用意できなければ、専用の Gmail でもよい。
+3. **App Store Connect でアプリを作る**（掲載文・キーワード・審査メモの案は `docs/app-store-listing.md`）
+   - アプリ名は App Store の中で重複できない。「yota」が使われていたら、案の中から選ぶ。
+   - Bundle ID は `app.yotachat`。
+   - 配信する国は、最初は**日本だけ**にする。アプリが日本語だけなのと、EU で配信するとデジタルサービス法で「トレーダー」かどうかの申告が要り、トレーダーなら住所と電話番号がストアに出るため。
+   - 無料のアプリなので、有料アプリの契約・口座・税の登録はまだ要らない。
+   - URL：プライバシーポリシー `https://yotachat.app/privacy`、サポート `https://yotachat.app/support`、マーケティング `https://yotachat.app`。
+4. **ビルドして TestFlight で試し、審査に出す**（下の「3. iOS」の手順。Team は自分の個人の Team を選ぶ）
+   - 最初は iPhone だけに対応する（`TARGETED_DEVICE_FAMILY = 1`。iPad のスクリーンショットと iPad での審査を省くため）。iPad 対応はあとから足せる。
+   - アップロードのあとに Apple から警告のメール（例：ITMS-91053 のプライバシーマニフェスト）が来たら、内容に合わせて直す。Capacitor 8 の部品には、それぞれのプライバシーマニフェストが入っている。
+
+## 1. 会社でやること（並行して進める）
+
+おおよその流れ：法人の設立（1〜3週間）→ 法人口座と D-U-N-S 番号（1〜2週間）→ Apple の切り替え・Google の組織アカウント（数日〜1週間）。iOS を個人で出しているあいだに進める。
 
 | やること | 目安 | メモ |
 | --- | --- | --- |
-| 法人の設立と、法人名義の銀行口座 | 2〜4週間 | ストアの売上の振込先になる |
-| D-U-N-S 番号の取得 | 1〜2週間・無料 | Apple と Google の組織アカウントの両方で必要。Apple の開発者サイトから申請できる |
-| Apple Developer Program（組織） | 年 99 USD | D-U-N-S 番号、法人の Web サイト、法人ドメインのメールが要る |
+| 法人の設立 | 合同会社なら1〜2週間（費用の目安は約6〜10万円）、株式会社なら2〜3週間（約20〜25万円） | Apple の組織にするには、登記された法人が要る（個人事業主のままでは不可）。1人で作った会社でよい |
+| 法人名義の銀行口座 | 1〜3週間 | ストアの売上の振込先になる |
+| D-U-N-S 番号の取得 | 1〜2週間・無料 | 登記のあとに、Apple の開発者サイトの「D-U-N-S 番号の検索」から申請する（日本では東京商工リサーチが発行）。会社名・住所は登記と同じにする |
+| Web サイトとドメインのメール | — | Apple の組織の登録では、会社と結びついた Web サイトと、そのドメインのメールを求められる。yotachat.app と support@yotachat.app で足りる |
+| Apple：個人から組織への切り替え | 数日〜1週間 | 開発者アカウントのメンバーシップの画面から申請する（見つからなければ Apple Developer のサポートに連絡）。申請するのは創業者か共同創業者。アプリ・評価・TestFlight はそのまま、販売元の名前が会社名に変わる。切り替えのあと Team ID が変わっていないか確かめる |
 | Google Play Console（組織） | 1回 25 USD | 組織の確認書類と D-U-N-S 番号が要る。組織アカウントは「12人で14日間のテスト」の条件がない |
-| 問い合わせ用のメールアドレス | — | 規約・ポリシー・ストアの掲載情報に出す |
+| 運営者の情報を会社に置きかえる | — | Vercel の `NEXT_PUBLIC_OPERATOR_*` を会社の名前・所在地・メールにして再デプロイ |
+| 課金を入れるなら | — | 会社に切り替えてから、有料アプリの契約・口座・税の登録をする（下の「7. 課金」） |
 
-会社ができたら、Vercel の環境変数に運営者の情報を入れる（入れないと規約とポリシーに【会社名を入れる】と出たままになり、審査に通らない）。
+会社ができたら、Vercel の環境変数の運営者の情報を会社のものにする（個人のあいだの入れ方は「0.」の2）。
 
 ```bash
 NEXT_PUBLIC_OPERATOR_NAME=株式会社〇〇
@@ -46,7 +76,7 @@ NEXT_PUBLIC_OPERATOR_EMAIL=support@yotachat.app
 ## 3. iOS（Mac が必要）
 
 1. `npm install` → `npx cap sync ios` → `npx cap open ios`（Xcode が開く）
-2. Signing & Capabilities で、会社の Team を選ぶ。Bundle Identifier は `app.yotachat`。
+2. Signing & Capabilities で、自分の Team を選ぶ（いまは個人の Team。会社に切り替えても同じ Team のまま）。Bundle Identifier は `app.yotachat`。
 3. Capabilities を足す：**Push Notifications**、**Associated Domains**（`applinks:yotachat.app`）。
 4. Vercel の環境変数に `APPLE_TEAM_ID`（10文字）を入れる。`/.well-known/apple-app-site-association` が自動で返る。
 5. Product → Archive → App Store Connect にアップロード → TestFlight で自分の端末で試す。

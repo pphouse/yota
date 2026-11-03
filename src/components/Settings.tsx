@@ -118,6 +118,9 @@ export function Settings() {
         <div className={row}>
           <FeedbackSheet label="ご意見・お問い合わせ・通報" />
         </div>
+        <Link href="/support" className={`${row} press`}>
+          サポート・よくある質問<span aria-hidden className="text-mist">›</span>
+        </Link>
         <Link href="/terms" className={`${row} press`}>
           利用規約<span aria-hidden className="text-mist">›</span>
         </Link>
