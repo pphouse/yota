@@ -15,9 +15,9 @@ const article: Article = {
   lead:
     "zeta は無料でも話せますが、広告が出て、使えるのは標準のAIモデルだけです。広告を消すのが zeta pass、上位のAIモデルに使うのがピースです。",
   published: "2026-11-03",
-  updated: "2026-11-03",
-  checked: "2026-11-03",
-  keywords: ["zeta 課金", "zeta 料金", "zeta pass", "zeta ピース", "zeta 無料 どこまで", "zeta 広告 消す"],
+  updated: "2026-11-05",
+  checked: "2026-11-05",
+  keywords: ["zeta 課金", "zeta 料金", "zeta pass", "zeta ピース", "zeta 無料 どこまで", "zeta 広告 消す", "zeta pass web 安い", "zeta 自動チャージ"],
   body: `
 ## zeta の料金のしくみ
 
@@ -34,6 +34,20 @@ zeta は基本無料のアプリです。
 
 :::point 覚え方
 zeta pass は「快適さ」、ピースは「AIの質」にお金を払うもの、と分けて考えるとわかりやすいです。
+:::
+
+## Web で買うと約20％おトク（2026年10月29日から）
+
+2026年10月29日から、zeta pass（定期購入・1日パス）を**ブラウザのWeb版で買うと、アプリ内より約20％おトク**になりました（zeta のお知らせより）。
+
+- PCやスマホのブラウザで Web 版 zeta にログインして購入する
+- 支払いはクレジットカード・デビットカード
+- 上の表の値段はアプリ内のもの。Web 版の値段は、公式のお知らせの画像で確かめてください
+
+あわせて、ピースの**自動チャージ**も始まりました。残りが決めた数を下回ると、決めた数のピースを自動で買う機能です（設定と解除は Web 版だけ）。
+
+:::warn 自動チャージは、使いすぎに注意
+会話を止めずに続けられる反面、気づかないうちに出費がふくらみやすくなります。使うときは、月にいくらまでかを先に決めておきましょう。
 :::
 
 ## 無料でどこまで遊べる？
@@ -129,6 +143,7 @@ zeta で作った自分のキャラを持ってくることもできます（[�
     },
   ],
   sources: [
+    { title: "zeta お知らせ「zeta passのWeb決済がスタート！Webなら約20％おトクに」（2026年10月29日）", url: "https://zeta-ai.io/ja/announcements/13566" },
     { title: "ITmedia NEWS「月間売上1億円超、“推しAI”アプリ『Zeta』がオタク女子わしづかみ ただし危うさも」（2026年6月17日）", url: "https://www.itmedia.co.jp/news/articles/2606/17/news020.html" },
     { title: "ピクシブ百科事典「zeta」", url: "https://dic.pixiv.net/a/zeta" },
     { title: "App Store「zeta — AI Chat, Live Stories」（Scatter Lab, Inc.）", url: "https://apps.apple.com/us/app/1619030760" },
