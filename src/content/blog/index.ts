@@ -1,6 +1,7 @@
 import type { Article } from "@/lib/blog";
 import aiChatNovel from "./ai-chat-novel";
 import downloadTourokuFuyou from "./download-touroku-fuyou";
+import joseiMukeAiRenaiApp from "./josei-muke-ai-renai-app";
 import oshiToHanaseruApp from "./oshi-to-hanaseru-app";
 import zetaChachaCharapuHikaku from "./zeta-chacha-charapu-hikaku";
 import yumeShosetsuAi from "./yume-shosetsu-ai";
@@ -10,4 +11,4 @@ import zetaNitaAppErabikata from "./zeta-nita-app-erabikata";
 import zetaRyokin from "./zeta-ryokin";
 
 /** 読みものの記事。新しい記事は、ファイルを足してここに並べる */
-export const ARTICLES: Article[] = [zetaHikkoshi, aiChatNovel, downloadTourokuFuyou, oshiToHanaseruApp, zetaChachaCharapuHikaku, zetaRyokin, zetaNenrei, zetaNitaAppErabikata, yumeShosetsuAi];
+export const ARTICLES: Article[] = [joseiMukeAiRenaiApp, zetaHikkoshi, aiChatNovel, downloadTourokuFuyou, oshiToHanaseruApp, zetaChachaCharapuHikaku, zetaRyokin, zetaNenrei, zetaNitaAppErabikata, yumeShosetsuAi];
