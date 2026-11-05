@@ -168,6 +168,18 @@ const SCHEMA = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_llm_usage_created ON llm_usage(created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_llm_usage_session ON llm_usage(session_id, created_at)`,
+  // 運営の調査データ（X の調査結果など）。管理者画面の「調査」から上げて、ビューワーで見る。
+  // data はビューワーにそのまま渡す JSON（アカウントと投稿）
+  `CREATE TABLE IF NOT EXISTS research_datasets (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    accounts INTEGER NOT NULL,
+    posts INTEGER NOT NULL,
+    views INTEGER NOT NULL,
+    collected_at TEXT NOT NULL DEFAULT '',
+    data TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
 ];
 
 // あとから足した列。作成済みのDBにも足す（すでにあればエラーになるので無視する）
