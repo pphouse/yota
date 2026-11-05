@@ -63,7 +63,11 @@ zeta pass は「快適さ」、ピースは「AIの質」にお金を払うも�
 
 ## ピースは1回いくら？計算してみた
 
-ITmedia NEWS の記事によると、上位のAIモデルの返答は **1回あたり4〜8ピース** かかります。
+ITmedia NEWS の記事（2026年6月）によると、上位のAIモデルの返答は **1回あたり4〜8ピース** かかります。
+
+:::note 2026年8月7日からは値上がりしたと伝えられています
+利用者向けの解説記事によると、2026年8月7日から koji は1回5ピース、luca は1回10ピースになりました（zeta モデルは無料）。下の表は6月時点の数字なので、最新の数はアプリの表示で確かめてください。
+:::
 
 いちばん小さい「200個300円」で計算すると、次のようになります。
 
@@ -144,6 +148,7 @@ zeta で作った自分のキャラを持ってくることもできます（[�
   ],
   sources: [
     { title: "zeta お知らせ「zeta passのWeb決済がスタート！Webなら約20％おトクに」（2026年10月29日）", url: "https://zeta-ai.io/ja/announcements/13566" },
+    { title: "aipicks「zeta 比較 2026」（2026年11月5日更新）", url: "https://aipicks.jp/mag/zeta-compare-2026" },
     { title: "ITmedia NEWS「月間売上1億円超、“推しAI”アプリ『Zeta』がオタク女子わしづかみ ただし危うさも」（2026年6月17日）", url: "https://www.itmedia.co.jp/news/articles/2606/17/news020.html" },
     { title: "ピクシブ百科事典「zeta」", url: "https://dic.pixiv.net/a/zeta" },
     { title: "App Store「zeta — AI Chat, Live Stories」（Scatter Lab, Inc.）", url: "https://apps.apple.com/us/app/1619030760" },
