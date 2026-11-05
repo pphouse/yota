@@ -47,6 +47,7 @@ type Work = {
   createdAt: number;
   updatedAt: number;
 };
+type Dataset = { id: string; title: string; accounts: number; posts: number; views: number; collectedAt: string; createdAt: number };
 type Cost = { totalYen: number; calls: number; unknownCost: number; days: { day: string; calls: number; yen: number }[]; purposes: { purpose: string; calls: number; yen: number; input: number; output: number }[] };
 
 const TABS = [
@@ -55,13 +56,14 @@ const TABS = [
   ["ratings", "評価"],
   ["works", "作品"],
   ["cost", "費用"],
+  ["research", "調査"],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
 const date = (t: number) => new Date(t).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 const yen = (n: number) => `${n.toLocaleString("ja-JP")}円`;
 const card = "rounded-2xl bg-night-2 p-4";
-const chip = (on: boolean) => `press rounded-full px-3 py-1.5 text-[0.75rem] font-bold ${on ? "bg-paper text-night" : "bg-night-3 text-mist hover:text-paper"}`;
+const chip = (on: boolean) => `press shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-[0.75rem] font-bold ${on ? "bg-paper text-night" : "bg-night-3 text-mist hover:text-paper"}`;
 
 /** 管理者画面。パスワードでログインし、数字・ご意見・評価・作品・費用を見る。作品はここから追加・承認する */
 export function AdminApp() {
@@ -114,6 +116,7 @@ export function AdminApp() {
         {tab === "ratings" && <Ratings />}
         {tab === "works" && <Works />}
         {tab === "cost" && <CostView />}
+        {tab === "research" && <ResearchView />}
       </div>
     </Shell>
   );
@@ -503,6 +506,117 @@ function CostView() {
           </section>
         </div>
       )}
+    </div>
+  );
+}
+
+/** 調査データ（X の調査など）。JSON を上げると保存され、ビューワーのリンクから見られる（管理者だけ） */
+function ResearchView() {
+  const { data, error, reload } = useData<{ items: Dataset[] }>("/api/admin/research");
+  const [title, setTitle] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
+
+  async function upload(e: React.FormEvent) {
+    e.preventDefault();
+    if (!file) return;
+    setBusy(true);
+    setMessage(null);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await file.text());
+    } catch {
+      setBusy(false);
+      return setMessage("JSON として読めませんでした");
+    }
+    const r = await api<{ item?: Dataset; error?: string }>("/api/admin/research", { method: "POST", body: JSON.stringify({ title: title.trim() || file.name, data: parsed }) });
+    setBusy(false);
+    if (!r.ok || !r.data.item) return setMessage(r.data.error ?? "保存できませんでした");
+    setMessage(`保存しました：${r.data.item.title}`);
+    setTitle("");
+    setFile(null);
+    reload();
+  }
+
+  async function remove(id: string) {
+    await api(`/api/admin/research/${encodeURIComponent(id)}`, { method: "DELETE" });
+    setConfirming(null);
+    reload();
+  }
+
+  const big = (n: number) => (n >= 10000 ? `${(n / 10000).toFixed(n >= 1e6 ? 0 : 1)}万` : n.toLocaleString("ja-JP"));
+  return (
+    <div className="space-y-4">
+      <section className={card}>
+        <h2 className="text-sm font-bold">調査データ</h2>
+        {error && <p className="mt-2 text-sm text-amber">{error}</p>}
+        {!data ? (
+          <p className="mt-2 text-sm text-mist">読み込み中…</p>
+        ) : data.items.length === 0 ? (
+          <p className="mt-2 text-sm leading-6 text-mist">まだありません。下から調査の JSON を上げてください。</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-night-3">
+            {data.items.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3">
+                <div className="min-w-0 flex-1">
+                  <a href={`/admin/research/${d.id}`} target="_blank" rel="noopener" className="font-bold text-paper underline underline-offset-4">
+                    {d.title}
+                  </a>
+                  <p className="mt-0.5 text-xs text-mist tabular-nums">
+                    {d.accounts.toLocaleString()}アカウント・{d.posts.toLocaleString()}件・{big(d.views)}表示
+                    {d.collectedAt && ` ・収集 ${date(Date.parse(d.collectedAt))}`}・上げた日 {date(d.createdAt)}
+                  </p>
+                </div>
+                {confirming === d.id ? (
+                  <span className="flex gap-2 text-xs">
+                    <button onClick={() => remove(d.id)} className="press rounded-full bg-red-500/90 px-3 py-1.5 font-bold text-white">
+                      削除する
+                    </button>
+                    <button onClick={() => setConfirming(null)} className="press rounded-full bg-night-3 px-3 py-1.5 font-bold">
+                      やめる
+                    </button>
+                  </span>
+                ) : (
+                  <button onClick={() => setConfirming(d.id)} className="press text-xs font-bold text-mist hover:text-paper">
+                    削除
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <form onSubmit={upload} className={card}>
+        <h2 className="text-sm font-bold">上げる</h2>
+        <p className="mt-1 text-xs leading-5 text-mist">
+          screenpilot の調査（x_zeta_explore.py など）が書き出した JSON を上げます。アイコンを埋め込んだ大きい JSON は、アイコンの URL に置きかえて保存します（4MBまで）。
+        </p>
+        <label className="mt-3 block text-xs font-bold text-mist" htmlFor="research-title">
+          題名
+        </label>
+        <input
+          id="research-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          maxLength={80}
+          placeholder="zeta X調査 2026-10-31"
+          className="mt-1 w-full rounded-xl bg-night-3 px-3 py-2.5 text-sm"
+        />
+        <input
+          id="research-file"
+          type="file"
+          accept="application/json,.json"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="mt-3 block w-full text-sm text-mist file:mr-3 file:rounded-full file:border-0 file:bg-night-3 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-paper"
+        />
+        {message && <p className="mt-3 text-sm">{message}</p>}
+        <button type="submit" disabled={!file || busy} className="press btn-brand mt-4 w-full rounded-2xl py-3 text-sm disabled:opacity-50">
+          {busy ? "保存しています…" : "保存する"}
+        </button>
+      </form>
     </div>
   );
 }
