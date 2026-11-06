@@ -17,7 +17,8 @@ const sample = ResearchData.parse({
     {
       handle: "a",
       name: "A",
-      avatar: "data:image/jpeg;base64,AAAA",
+      // 大きく埋め込んだアイコン（X の調査の 200px 画像など）
+      avatar: "data:image/jpeg;base64," + "A".repeat(20000),
       avatar_url: "https://pbs.twimg.com/profile_images/1/a_200x200.jpg",
       posts: [
         { url: "https://x.com/a/status/1", text: "zeta の広告が多い </script><script>alert(1)</script>", views: 1200 },
@@ -29,7 +30,7 @@ const sample = ResearchData.parse({
 });
 
 describe("調査データ", () => {
-  it("埋め込んだアイコン画像は URL に置きかえて保存し、件数と表示回数を数える", async () => {
+  it("大きく埋め込んだアイコン画像は URL に置きかえて保存し、件数と表示回数を数える", async () => {
     expect(slim(sample).accounts[0].avatar).toBe("https://pbs.twimg.com/profile_images/1/a_200x200.jpg");
     const meta = await saveDataset("zeta X調査", sample);
     expect(meta).toMatchObject({ title: "zeta X調査", accounts: 2, posts: 3, views: 1500, collectedAt: "2026-10-31T12:31:12+00:00" });
@@ -39,6 +40,12 @@ describe("調査データ", () => {
     await deleteDataset(meta.id);
     expect(await listDatasets()).toEqual([]);
     expect(await getDatasetJson(meta.id)).toBeNull();
+  });
+
+  it("小さい埋め込みアイコンは残す（URL が切れる TikTok のため）", () => {
+    const small = "data:image/jpeg;base64," + "A".repeat(3000);
+    const data = ResearchData.parse({ accounts: [{ handle: "t", avatar: small, avatar_url: "https://p16.tiktokcdn.com/x.jpeg", posts: [{ url: "u", text: "zeta" }] }] });
+    expect(slim(data).accounts[0].avatar).toBe(small);
   });
 
   it("accounts がない JSON は受け付けない", () => {
