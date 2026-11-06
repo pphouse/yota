@@ -4,6 +4,7 @@
 import { getPlot } from "./characters";
 import { query } from "./db";
 import { costOf, parsePrices } from "./llm-usage";
+import { splitRef } from "./ref";
 import { getUgc, listUgc, type UgcStatus } from "./ugc";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -161,4 +162,49 @@ export async function costSummary(days = 14, now = Date.now()) {
     days: days_,
     purposes: [...byPurpose.entries()].map(([purpose, v]) => ({ purpose, calls: v.calls, yen: Math.round(v.yen), input: v.input, output: v.output })).sort((a, b) => b.yen - a.yen),
   };
+}
+
+export type SourceRow = { key: string; visits: number; starts: number; talked: number };
+
+/**
+ * どこから来た人か（入口：Google 検索・ChatGPT・Claude など／リンク：?ref= の記事のボタンや TikTok のプロフィールなど）。
+ * - visits：その入口・リンクから初めて来た端末の数（landing_view）
+ * - starts：名前と年齢を入れて遊び始めた人（sessions.ref）
+ * - talked：そのうち、実際にキャラと話した人（conversations がある）
+ */
+export async function sourcesSummary(days = 14, now = Date.now()) {
+  const since = startOfTodayJst(now) - (days - 1) * DAY;
+  const views = await query<{ props: string }>("SELECT props FROM events WHERE type = 'landing_view' AND created_at >= ?", [since]);
+  const sessions = await query<{ ref: string | null; talked: number }>(
+    "SELECT s.ref AS ref, CASE WHEN EXISTS (SELECT 1 FROM conversations c WHERE c.session_id = s.id) THEN 1 ELSE 0 END AS talked FROM sessions s WHERE s.created_at >= ?",
+    [since],
+  );
+  const bySrc = new Map<string, SourceRow>();
+  const byLink = new Map<string, SourceRow>();
+  const row = (m: Map<string, SourceRow>, key: string) => {
+    let r = m.get(key);
+    if (!r) m.set(key, (r = { key, visits: 0, starts: 0, talked: 0 }));
+    return r;
+  };
+  for (const v of views) {
+    let p: { src?: unknown; ref?: unknown } = {};
+    try {
+      p = JSON.parse(v.props);
+    } catch {}
+    if (typeof p.src === "string" && p.src) row(bySrc, p.src).visits++;
+    if (typeof p.ref === "string" && p.ref) row(byLink, p.ref).visits++;
+  }
+  for (const s of sessions) {
+    const { src, link } = splitRef(s.ref ?? "");
+    const a = row(bySrc, src);
+    a.starts++;
+    a.talked += Number(s.talked) ? 1 : 0;
+    if (link) {
+      const b = row(byLink, link);
+      b.starts++;
+      b.talked += Number(s.talked) ? 1 : 0;
+    }
+  }
+  const sort = (m: Map<string, SourceRow>) => [...m.values()].sort((a, b) => b.starts - a.starts || b.visits - a.visits);
+  return { days, starts: sessions.length, sources: sort(bySrc), links: sort(byLink) };
 }

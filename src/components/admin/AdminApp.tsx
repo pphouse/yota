@@ -48,10 +48,13 @@ type Work = {
   updatedAt: number;
 };
 type Dataset = { id: string; title: string; accounts: number; posts: number; views: number; collectedAt: string; createdAt: number };
+type SourceRow = { key: string; visits: number; starts: number; talked: number };
+type Sources = { days: number; starts: number; sources: SourceRow[]; links: SourceRow[] };
 type Cost = { totalYen: number; calls: number; unknownCost: number; days: { day: string; calls: number; yen: number }[]; purposes: { purpose: string; calls: number; yen: number; input: number; output: number }[] };
 
 const TABS = [
   ["overview", "概要"],
+  ["sources", "流入元"],
   ["notes", "ご意見・通報"],
   ["ratings", "評価"],
   ["works", "作品"],
@@ -112,6 +115,7 @@ export function AdminApp() {
       </nav>
       <div className="mt-4">
         {tab === "overview" && <Overview onPending={() => setTab("works")} />}
+        {tab === "sources" && <SourcesView />}
         {tab === "notes" && <Notes />}
         {tab === "ratings" && <Ratings />}
         {tab === "works" && <Works />}
@@ -504,6 +508,93 @@ function CostView() {
               </tbody>
             </table>
           </section>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const SOURCE_LABEL: Record<string, string> = {
+  "": "直接・不明",
+  google: "Google 検索",
+  chatgpt: "ChatGPT",
+  claude: "Claude",
+  perplexity: "Perplexity",
+  gemini: "Gemini",
+  copilot: "Copilot",
+  grok: "Grok",
+  deepseek: "DeepSeek",
+  bing: "Bing",
+  yahoo: "Yahoo!",
+  duckduckgo: "DuckDuckGo",
+  x: "X",
+  tiktok: "TikTok",
+  instagram: "Instagram",
+  line: "LINE",
+  youtube: "YouTube",
+  pixiv: "pixiv",
+  note: "note",
+};
+const AI_SOURCES = new Set(["chatgpt", "claude", "perplexity", "gemini", "copilot", "grok", "deepseek"]);
+const sourceLabel = (k: string) => SOURCE_LABEL[k] ?? (k.startsWith("web-") ? k.slice(4).replace(/-/g, ".") : k);
+const linkLabel = (k: string) => (k.startsWith("blog-") ? `記事：${k.slice(5)}` : k);
+
+/** どこから来た人か。入口（Google 検索・ChatGPT・Claude など）と、リンク（?ref= の記事のボタンなど）を分けて見る */
+function SourcesView() {
+  const [days, setDays] = useState(14);
+  const { data, error } = useData<Sources>(`/api/admin/sources?days=${days}`);
+  const ai = data?.sources.filter((r) => AI_SOURCES.has(r.key)).reduce((a, r) => ({ visits: a.visits + r.visits, starts: a.starts + r.starts }), { visits: 0, starts: 0 });
+  const Table = ({ rows, label }: { rows: SourceRow[]; label: (k: string) => string }) => (
+    <table className="mt-2 w-full text-xs">
+      <thead>
+        <tr className="text-left text-[0.7rem] text-mist">
+          <th className="pb-1.5 font-bold" />
+          <th className="pb-1.5 text-right font-bold">来た端末</th>
+          <th className="pb-1.5 text-right font-bold">遊び始めた</th>
+          <th className="pb-1.5 text-right font-bold">話した</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.key || "none"} className="border-t border-white/5">
+            <td className={`py-1.5 pr-2 ${AI_SOURCES.has(r.key) ? "font-bold text-paper" : ""}`}>{label(r.key)}</td>
+            <td className="py-1.5 text-right tabular-nums text-mist">{r.visits.toLocaleString()}</td>
+            <td className="py-1.5 text-right font-bold tabular-nums">{r.starts.toLocaleString()}</td>
+            <td className="py-1.5 text-right tabular-nums">{r.talked.toLocaleString()}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+  return (
+    <div>
+      <div className="flex gap-1.5">
+        {[7, 14, 30, 90].map((d) => (
+          <button key={d} className={chip(days === d)} onClick={() => setDays(d)}>
+            {d}日
+          </button>
+        ))}
+      </div>
+      {error && <p className="mt-3 text-sm text-amber">{error}</p>}
+      {!data && !error && <p className="mt-3 text-sm text-mist">読み込み中…</p>}
+      {data && (
+        <div className="mt-3 space-y-4">
+          <section className={card}>
+            <p className="text-xs text-mist">直近{days}日に遊び始めた人</p>
+            <p className="mt-1 text-[1.6rem] font-black tabular-nums">{data.starts.toLocaleString()}人</p>
+            {ai && <p className="text-xs text-mist">うち AI（ChatGPT・Claude など）から：来た端末 {ai.visits} ／ 遊び始めた {ai.starts}</p>}
+          </section>
+          <section className={card}>
+            <p className="text-[0.85rem] font-black">入口（どこから来たか）</p>
+            {data.sources.length ? <Table rows={data.sources} label={sourceLabel} /> : <p className="mt-2 text-xs text-mist">まだ記録がありません</p>}
+          </section>
+          <section className={card}>
+            <p className="text-[0.85rem] font-black">リンク（?ref=：記事のボタン・TikTok のプロフィールなど）</p>
+            {data.links.length ? <Table rows={data.links} label={linkLabel} /> : <p className="mt-2 text-xs text-mist">まだ記録がありません</p>}
+          </section>
+          <p className="text-[0.7rem] leading-5 text-mist">
+            「来た端末」は、その入口・リンクから初めて来た端末の数です（2026年11月6日から記録）。「遊び始めた」は名前と年齢を入れた人、「話した」はそのうちキャラと話した人です。入口は utm_source かリファラーから決めるので、アプリ内ブラウザなどリファラーを送らない環境では「直接・不明」になります。
+          </p>
         </div>
       )}
     </div>

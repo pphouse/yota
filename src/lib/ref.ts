@@ -33,6 +33,19 @@ const SOURCES: [RegExp, string][] = [
   [/(^|\.)note\.com$/, "note"],
 ];
 
+/** 入口の名前の一覧（管理画面で、記録を「入口」と「リンク」に分けるのに使う） */
+export const SOURCE_NAMES = new Set(SOURCES.map(([, name]) => name));
+
+/** セッションに付いた流入元（例 google__blog-zeta-hikkoshi）を、入口とリンクに分ける */
+export function splitRef(raw: string): { src: string; link: string } {
+  const v = normalizeRef(raw);
+  if (!v) return { src: "", link: "" };
+  const i = v.indexOf("__");
+  if (i > 0) return { src: v.slice(0, i), link: v.slice(i + 2) };
+  if (SOURCE_NAMES.has(v) || v.startsWith("web-")) return { src: v, link: "" };
+  return { src: "", link: v };
+}
+
 export function sourceFromHost(host: string, selfHost = ""): string {
   const h = host.trim().toLowerCase().replace(/^www\./, "");
   if (!h || h === selfHost.replace(/^www\./, "") || h === "yotachat.app" || h.endsWith(".vercel.app") || h === "localhost") return "";
