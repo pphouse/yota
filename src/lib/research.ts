@@ -30,15 +30,20 @@ const toMeta = (r: Row): DatasetMeta => ({
   createdAt: Number(r.created_at),
 });
 
+/** これより小さい埋め込みアイコン（data:）はそのまま残す。TikTok のアイコンの URL は時間がたつと切れるため */
+export const SMALL_AVATAR_CHARS = 8_000;
+
 /**
  * 保存する前に、ビューワーで使わない大きな項目を落とす。
- * アイコンの画像（data: で埋め込んだもの）は、アイコンの URL（avatar_url）に置きかえる。
+ * 大きく埋め込んだアイコン画像（data:）は、アイコンの URL（avatar_url）に置きかえる。小さいものは残す。
  */
 export function slim(data: ResearchData): ResearchData {
   return {
     ...data,
     accounts: data.accounts.map((a) => {
-      const avatar = typeof a.avatar === "string" && !a.avatar.startsWith("data:") ? a.avatar : typeof a.avatar_url === "string" ? a.avatar_url : null;
+      const own = typeof a.avatar === "string" ? a.avatar : null;
+      const keep = own && (!own.startsWith("data:") || own.length <= SMALL_AVATAR_CHARS);
+      const avatar = keep ? own : typeof a.avatar_url === "string" ? a.avatar_url : null;
       return { ...a, avatar };
     }),
   };
