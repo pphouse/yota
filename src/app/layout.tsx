@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import "@fontsource/noto-sans-jp/400.css";
 import "@fontsource/noto-sans-jp/500.css";
@@ -29,7 +30,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="ja" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <RefCapture />
+        <Suspense fallback={null}>
+          <RefCapture />
+        </Suspense>
         <NativeBridge />
         <LoginToast />
         {children}
