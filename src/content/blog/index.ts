@@ -1,4 +1,6 @@
 import type { Article } from "@/lib/blog";
+import zetaToppatsuEvent from "./zeta-toppatsu-event";
+import zetaLiveChat from "./zeta-live-chat";
 import zetaSumahoNozoku from "./zeta-sumaho-nozoku";
 import zetaUraSettei from "./zeta-ura-settei";
 import zetaFuonBug from "./zeta-fuon-bug";
@@ -22,4 +24,4 @@ import zetaNitaAppErabikata from "./zeta-nita-app-erabikata";
 import zetaRyokin from "./zeta-ryokin";
 
 /** 読みものの記事。新しい記事は、ファイルを足してここに並べる */
-export const ARTICLES: Article[] = [zetaSumahoNozoku, zetaUraSettei, zetaFuonBug, zetaBugMatome, zetaKaiwaMirareru, zetaKioku, zetaSeitekiKaiwa, zetaVisualNovel, zetaPlotSakujo, aiKareshiApp, zetaKutoutenBug, joseiMukeAiRenaiApp, zetaHikkoshi, aiChatNovel, downloadTourokuFuyou, oshiToHanaseruApp, zetaChachaCharapuHikaku, zetaRyokin, zetaNenrei, zetaNitaAppErabikata, yumeShosetsuAi];
+export const ARTICLES: Article[] = [zetaToppatsuEvent, zetaLiveChat, zetaSumahoNozoku, zetaUraSettei, zetaFuonBug, zetaBugMatome, zetaKaiwaMirareru, zetaKioku, zetaSeitekiKaiwa, zetaVisualNovel, zetaPlotSakujo, aiKareshiApp, zetaKutoutenBug, joseiMukeAiRenaiApp, zetaHikkoshi, aiChatNovel, downloadTourokuFuyou, oshiToHanaseruApp, zetaChachaCharapuHikaku, zetaRyokin, zetaNenrei, zetaNitaAppErabikata, yumeShosetsuAi];
